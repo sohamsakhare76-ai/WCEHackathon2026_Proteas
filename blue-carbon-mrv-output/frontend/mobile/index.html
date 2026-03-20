@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#0a1628"/>
+<title>Blue Carbon — Field App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0a1628;--bg2:#0d1e38;
+  --card:#111f3a;--card2:#162444;--card3:#1c2e50;
+  --border:#1e3358;--border2:#253f6e;
+  --blue:#3b82f6;--blue2:#60a5fa;--cyan:#22d3ee;
+  --green:#10b981;--green2:#34d399;
+  --amber:#f59e0b;--red:#ef4444;--purple:#8b5cf6;
+  --text:#e2eeff;--text2:#6b8cba;--text3:#3d5a8a;
+  --font:'Plus Jakarta Sans',sans-serif;--mono:'JetBrains Mono',monospace;
+  --r:14px;--r2:20px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;overflow:hidden;font-family:var(--font);background:var(--bg);color:var(--text)}
+body{padding-top:var(--safe-top);padding-bottom:var(--safe-bot)}
+
+/* Noise texture overlay */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;opacity:.03;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events:none;
+}
+
+/* ── SCREENS ─────────────────────────────────────────────── */
+.screen{display:none;position:absolute;inset:0;z-index:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.screen.active{display:flex;flex-direction:column}
+
+/* ── AUTH SCREEN ─────────────────────────────────────────── */
+#screen-auth{
+  justify-content:flex-end;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%,rgba(59,130,246,.25) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 20% 80%,rgba(34,211,238,.1) 0%,transparent 50%),
+    var(--bg);
+}
+.auth-hero{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 24px 24px;text-align:center;
+}
+.auth-logo{
+  width:72px;height:72px;border-radius:22px;margin-bottom:20px;
+  background:linear-gradient(135deg,#3b82f6,#22d3ee);
+  display:flex;align-items:center;justify-content:center;font-size:32px;
+  box-shadow:0 0 40px rgba(59,130,246,.4);
+  animation:logoFloat 3s ease-in-out infinite;
+}
+@keyframes logoFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.auth-title{font-size:28px;font-weight:800;line-height:1.1;margin-bottom:8px}
+.auth-title span{background:linear-gradient(135deg,#60a5fa,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.auth-sub{font-size:14px;color:var(--text2);line-height:1.6}
+
+.auth-sheet{
+  background:var(--card);border-radius:28px 28px 0 0;
+  padding:28px 24px calc(24px + var(--safe-bot));
+  border-top:1px solid var(--border2);
+  box-shadow:0 -20px 60px rgba(0,0,0,.5);
+}
+.auth-tabs{display:flex;gap:0;background:var(--bg2);border-radius:12px;padding:3px;margin-bottom:22px}
+.auth-tab{flex:1;text-align:center;padding:10px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;color:var(--text2);transition:.2s}
+.auth-tab.active{background:var(--card2);color:var(--blue2);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+
+.inp-group{position:relative;margin-bottom:14px}
+.inp-label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text2);margin-bottom:6px;display:block}
+.inp{
+  width:100%;background:var(--card2);border:1.5px solid var(--border);border-radius:12px;
+  padding:14px 16px;color:var(--text);font-size:15px;font-family:var(--font);outline:none;
+  transition:all .2s;
+}
+.inp:focus{border-color:var(--blue);background:var(--card3);box-shadow:0 0 0 4px rgba(59,130,246,.1)}
+.inp::placeholder{color:var(--text3)}
+.inp-icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:18px;pointer-events:none}
+
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:16px;border-radius:14px;font-size:16px;font-weight:700;
+  cursor:pointer;border:none;font-family:var(--font);transition:all .18s;
+  position:relative;overflow:hidden;
+}
+.btn::after{content:'';position:absolute;inset:0;background:white;opacity:0;transition:.15s}
+.btn:active::after{opacity:.08}
+.btn-primary{background:linear-gradient(135deg,#3b82f6,#22d3ee);color:#fff;box-shadow:0 4px 20px rgba(59,130,246,.4)}
+.btn-primary:active{transform:scale(.98);box-shadow:0 2px 10px rgba(59,130,246,.3)}
+.btn-outline{background:transparent;border:1.5px solid var(--border2);color:var(--text2)}
+.btn-danger{background:rgba(239,68,68,.15);color:var(--red);border:1.5px solid rgba(239,68,68,.3)}
+.btn-green{background:linear-gradient(135deg,#10b981,#22d3ee);color:#fff;box-shadow:0 4px 20px rgba(16,185,129,.3)}
+.btn-sm{padding:10px 16px;font-size:13px;border-radius:10px;width:auto}
+.btn:disabled{opacity:.4;pointer-events:none}
+
+/* ── APP SHELL ────────────────────────────────────────────── */
+#screen-app{background:var(--bg)}
+.app-header{
+  padding:16px 20px 12px;
+  background:var(--bg);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:50;
+  backdrop-filter:blur(20px);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.app-header-brand{display:flex;align-items:center;gap:10px}
+.app-header-logo{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#3b82f6,#22d3ee);display:flex;align-items:center;justify-content:center;font-size:15px}
+.app-header-title{font-size:16px;font-weight:800}
+.app-header-sub{font-size:11px;color:var(--text2)}
+.header-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;cursor:pointer}
+
+/* Pages */
+.page{display:none;flex:1;overflow-y:auto;padding:16px 20px;padding-bottom:90px}
+.page.active{display:block}
+
+/* Bottom Nav */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:100;
+  background:var(--card);border-top:1px solid var(--border);
+  display:flex;padding:8px 0 calc(8px + var(--safe-bot));
+  box-shadow:0 -10px 40px rgba(0,0,0,.4);
+}
+.nav-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:6px 4px;cursor:pointer;position:relative;
+  color:var(--text2);font-size:10px;font-weight:600;transition:.15s;
+}
+.nav-btn.active{color:var(--blue2)}
+.nav-btn .ni{font-size:22px;transition:.15s}
+.nav-btn.active .ni{filter:drop-shadow(0 0 6px rgba(59,130,246,.6))}
+.nav-notif{
+  position:absolute;top:4px;right:calc(50% - 16px);
+  width:16px;height:16px;background:var(--red);border-radius:50%;
+  font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  color:#fff;border:2px solid var(--card);
+}
+
+/* ── HOME PAGE ────────────────────────────────────────────── */
+.greeting{margin-bottom:20px}
+.greeting-name{font-size:24px;font-weight:800;line-height:1.1}
+.greeting-sub{font-size:13px;color:var(--text2);margin-top:4px}
+
+.quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px}
+.qa-card{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r2);
+  padding:18px 16px;cursor:pointer;transition:all .18s;
+  display:flex;flex-direction:column;gap:10px;
+}
+.qa-card:active{transform:scale(.97);border-color:var(--border2)}
+.qa-icon{font-size:28px}
+.qa-label{font-size:14px;font-weight:700}
+.qa-sub{font-size:11px;color:var(--text2)}
+
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.section-title{font-size:16px;font-weight:700}
+.section-link{font-size:12px;color:var(--blue2);font-weight:600}
+
+.project-card{
+  background:var(--card);border:1.5px solid var(--border);border-radius:var(--r2);
+  padding:16px;margin-bottom:10px;cursor:pointer;transition:all .18s;
+}
+.project-card:active{transform:scale(.98)}
+.pc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.pc-name{font-size:15px;font-weight:700;flex:1;padding-right:10px}
+.pc-eco{font-size:18px}
+.pc-meta{display:flex;gap:10px;font-size:12px;color:var(--text2)}
+.pc-stat{display:flex;align-items:center;gap:4px}
+.status-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;
+}
+.status-pill.pending{background:rgba(245,158,11,.15);color:var(--amber)}
+.status-pill.verified{background:rgba(16,185,129,.15);color:var(--green)}
+.status-pill.rejected{background:rgba(239,68,68,.15);color:var(--red)}
+.status-pill.minted{background:rgba(34,211,238,.15);color:var(--cyan)}
+.dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+
+/* ── UPLOAD PAGE ──────────────────────────────────────────── */
+.upload-header{text-align:center;padding:20px 0 16px}
+.upload-header h2{font-size:20px;font-weight:800;margin-bottom:4px}
+.upload-header p{font-size:13px;color:var(--text2)}
+
+.photo-zone{
+  border:2px dashed var(--border2);border-radius:var(--r2);
+  min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .2s;background:var(--card);margin-bottom:16px;
+  overflow:hidden;position:relative;
+}
+.photo-zone.has-photo{border-style:solid;border-color:var(--blue)}
+.photo-zone-inner{text-align:center;padding:24px;pointer-events:none}
+.photo-zone-icon{font-size:48px;margin-bottom:10px;display:block}
+.photo-zone-text{font-size:15px;font-weight:600;margin-bottom:4px}
+.photo-zone-hint{font-size:12px;color:var(--text2)}
+#preview-img{width:100%;max-height:260px;object-fit:cover;display:none}
+
+.form-section{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:18px;margin-bottom:14px}
+.form-section-title{font-size:13px;font-weight:700;color:var(--text2);letter-spacing:.5px;margin-bottom:14px;text-transform:uppercase}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.inp-sm{padding:11px 13px;font-size:14px;border-radius:10px}
+.chip-row{display:flex;gap:8px;flex-wrap:wrap}
+.chip{
+  padding:8px 14px;border-radius:20px;font-size:13px;font-weight:600;
+  border:1.5px solid var(--border2);color:var(--text2);cursor:pointer;transition:.15s;
+}
+.chip.active{background:rgba(59,130,246,.15);border-color:var(--blue);color:var(--blue2)}
+
+/* ── PROJECTS PAGE ────────────────────────────────────────── */
+.filter-chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none}
+.filter-chips::-webkit-scrollbar{display:none}
+.fchip{
+  padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;
+  border:1.5px solid var(--border2);color:var(--text2);cursor:pointer;transition:.15s;flex-shrink:0;
+}
+.fchip.active{background:rgba(59,130,246,.15);border-color:var(--blue);color:var(--blue2)}
+
+/* ── WALLET/PROFILE PAGE ─────────────────────────────────── */
+.wallet-hero{
+  background:linear-gradient(135deg,rgba(59,130,246,.2),rgba(34,211,238,.15));
+  border:1px solid rgba(59,130,246,.3);border-radius:var(--r2);padding:22px;margin-bottom:16px;
+}
+.bct-balance{font-size:48px;font-weight:800;background:linear-gradient(135deg,#60a5fa,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.wallet-addr-box{background:var(--bg2);border-radius:10px;padding:12px;margin-top:12px;border:1px solid var(--border)}
+.wallet-addr{font-family:var(--mono);font-size:11px;color:var(--cyan);word-break:break-all;line-height:1.6}
+
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.info-row:last-child{border-bottom:none}
+.info-lbl{font-size:13px;color:var(--text2)}
+.info-val{font-size:13px;font-weight:600}
+
+/* TX card */
+.tx-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:8px}
+.tx-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.tx-icon-circle{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.tx-type{font-size:13px;font-weight:700}
+.tx-time{font-size:11px;color:var(--text2)}
+.tx-hash{font-family:var(--mono);font-size:10px;color:var(--cyan);margin-top:4px;word-break:break-all}
+.tx-amount{font-family:var(--mono);font-size:13px;font-weight:600}
+
+/* ── BOTTOM SHEET ─────────────────────────────────────────── */
+.sheet-bg{
+  display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(8px);
+  align-items:flex-end;
+}
+.sheet-bg.open{display:flex}
+.sheet{
+  background:var(--card);border-radius:24px 24px 0 0;
+  padding:20px 20px calc(20px + var(--safe-bot));width:100%;
+  max-height:85vh;overflow-y:auto;
+  animation:sheetUp .25s cubic-bezier(.16,1,.3,1);
+  border-top:1px solid var(--border2);
+}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 18px}
+.sheet-title{font-size:18px;font-weight:800;margin-bottom:16px}
+
+/* Mining animation */
+.mining-card{
+  background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(34,211,238,.08));
+  border:1px solid rgba(59,130,246,.3);border-radius:var(--r2);padding:20px;text-align:center;
+}
+.mining-spinner{
+  width:56px;height:56px;border-radius:50%;border:3px solid var(--border);
+  border-top-color:var(--blue);animation:spin .7s linear infinite;margin:0 auto 14px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.mining-title{font-size:15px;font-weight:700;margin-bottom:6px}
+.mining-sub{font-size:12px;color:var(--text2)}
+.progress-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin:12px 0}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));border-radius:2px;width:0%;transition:width .3s}
+
+/* Toast */
+.toast-wrap{position:fixed;top:calc(20px + var(--safe-top));left:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{
+  background:var(--card2);border:1px solid var(--border2);border-radius:12px;
+  padding:12px 16px;font-size:13px;display:flex;align-items:center;gap:10px;
+  box-shadow:0 8px 32px rgba(0,0,0,.6);animation:toastSlide .25s ease;
+  pointer-events:all;
+}
+.toast.out{animation:toastOut .25s ease forwards}
+@keyframes toastSlide{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateY(-10px)}}
+.toast.success{border-left:3px solid var(--green)}
+.toast.error{border-left:3px solid var(--red)}
+.toast.info{border-left:3px solid var(--blue)}
+.toast.warn{border-left:3px solid var(--amber)}
+
+/* Contract card */
+.contract-card{
+  background:var(--card2);border:1px solid var(--border2);border-radius:var(--r);
+  padding:14px;margin-bottom:12px;
+}
+.contract-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text2);margin-bottom:4px}
+.contract-addr{font-family:var(--mono);font-size:12px;color:var(--cyan);word-break:break-all}
+.not-deployed{font-size:13px;color:var(--text2);font-style:italic}
+
+/* Empty */
+.empty{text-align:center;padding:48px 20px;color:var(--text2)}
+.empty-icon{font-size:52px;margin-bottom:14px;opacity:.4}
+.empty h3{font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px}
+
+/* GPS indicator */
+.gps-indicator{
+  display:flex;align-items:center;gap:8px;font-size:12px;
+  background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);
+  border-radius:10px;padding:8px 12px;margin-bottom:14px;
+}
+.gps-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:gpsPulse 1.5s infinite}
+@keyframes gpsPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+</style>
+</head>
+<body>
+
+<!-- Auth Screen -->
+<div class="screen active" id="screen-auth">
+  <div class="auth-hero">
+    <div class="auth-logo">🌊</div>
+    <div class="auth-title">Blue Carbon<br/><span>Field App</span></div>
+    <p class="auth-sub">Upload drone imagery &amp;<br/>track your restoration projects</p>
+  </div>
+  <div class="auth-sheet">
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-login" onclick="switchTab('login')">Sign In</div>
+      <div class="auth-tab" id="tab-reg" onclick="switchTab('register')">Register</div>
+    </div>
+
+    <!-- Login -->
+    <div id="form-login">
+      <div class="inp-group">
+        <label class="inp-label">Email Address</label>
+        <input class="inp" type="email" id="l-email" placeholder="you@organisation.in" autocomplete="email"/>
+      </div>
+      <div class="inp-group">
+        <label class="inp-label">Password</label>
+        <input class="inp" type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()" style="margin-top:4px">Sign In →</button>
+    </div>
+
+    <!-- Register -->
+    <div id="form-reg" style="display:none">
+      <div class="inp-group">
+        <label class="inp-label">Full Name</label>
+        <input class="inp" id="r-name" placeholder="Dr. Priya Sharma"/>
+      </div>
+      <div class="inp-group">
+        <label class="inp-label">Email Address</label>
+        <input class="inp" type="email" id="r-email" placeholder="you@ngo.org"/>
+      </div>
+      <div class="inp-group">
+        <label class="inp-label">Password (min 6 chars)</label>
+        <input class="inp" type="password" id="r-pass" placeholder="••••••••"/>
+      </div>
+      <div class="inp-group">
+        <label class="inp-label">Organisation</label>
+        <input class="inp" id="r-org" placeholder="WWF India / IUCN / etc."/>
+      </div>
+      <button class="btn btn-primary" onclick="doRegister()" style="margin-top:4px">Create Account →</button>
+    </div>
+  </div>
+</div>
+
+<!-- App Screen -->
+<div class="screen" id="screen-app">
+  <div class="app-header">
+    <div class="app-header-brand">
+      <div class="app-header-logo">🌊</div>
+      <div>
+        <div class="app-header-title">Blue Carbon</div>
+        <div class="app-header-sub" id="hdr-sub">Field App</div>
+      </div>
+    </div>
+    <div class="header-avatar" id="hdr-avatar" onclick="gotoPage('profile')">?</div>
+  </div>
+
+  <!-- HOME -->
+  <div class="page active" id="page-home">
+    <div class="greeting">
+      <div class="greeting-name">Good day, <span id="greet-name">User</span> 👋</div>
+      <div class="greeting-sub" id="greet-sub">Track your restoration projects</div>
+    </div>
+
+    <div class="quick-actions">
+      <div class="qa-card" onclick="gotoPage('upload')">
+        <div class="qa-icon">📸</div>
+        <div class="qa-label">Upload Photo</div>
+        <div class="qa-sub">Submit drone/field image</div>
+      </div>
+      <div class="qa-card" onclick="gotoPage('projects')">
+        <div class="qa-icon">🌿</div>
+        <div class="qa-label">My Projects</div>
+        <div class="qa-sub">View registered sites</div>
+      </div>
+      <div class="qa-card" onclick="gotoPage('wallet')">
+        <div class="qa-icon">🪙</div>
+        <div class="qa-label">BCT Wallet</div>
+        <div class="qa-sub">Your carbon tokens</div>
+      </div>
+      <div class="qa-card" onclick="openRegisterProjectSheet()">
+        <div class="qa-icon">➕</div>
+        <div class="qa-label">New Project</div>
+        <div class="qa-sub">Register a site</div>
+      </div>
+    </div>
+
+    <!-- Pending uploads needing admin action -->
+    <div id="pending-uploads-section" style="display:none;margin-bottom:20px">
+      <div class="section-head">
+        <div class="section-title">⏳ Awaiting Verification</div>
+      </div>
+      <div id="pending-uploads-list"></div>
+    </div>
+
+    <div class="section-head">
+      <div class="section-title">Recent Projects</div>
+      <div class="section-link" onclick="gotoPage('projects')">See all</div>
+    </div>
+    <div id="home-projects"></div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div class="page" id="page-upload">
+    <div class="upload-header">
+      <h2>📸 Upload Image</h2>
+      <p>Submit drone or field imagery for your project</p>
+    </div>
+
+    <div id="gps-status" class="gps-indicator" style="display:none">
+      <div class="gps-dot"></div>
+      <span id="gps-text">Acquiring GPS…</span>
+    </div>
+
+    <div class="photo-zone" id="photo-zone" onclick="triggerCamera()">
+      <img id="preview-img" alt="preview"/>
+      <div class="photo-zone-inner" id="photo-zone-inner">
+        <span class="photo-zone-icon">📷</span>
+        <div class="photo-zone-text">Tap to take photo or upload</div>
+        <div class="photo-zone-hint">JPEG, PNG, WebP — max 20 MB</div>
+      </div>
+    </div>
+    <input type="file" id="file-inp" accept="image/*" capture="environment" style="display:none" onchange="onFileSelect(this)"/>
+
+    <div class="form-section">
+      <div class="form-section-title">Project Details</div>
+      <div class="inp-group" style="margin-bottom:12px">
+        <label class="inp-label">Select Project *</label>
+        <select class="inp inp-sm" id="up-project">
+          <option value="">Choose a project…</option>
+        </select>
+      </div>
+      <div class="inp-group" style="margin-bottom:0">
+        <label class="inp-label">Image Type</label>
+        <div class="chip-row" id="img-type-chips">
+          <div class="chip active" data-val="drone" onclick="selectChip(this,'img-type-chips')">🚁 Drone</div>
+          <div class="chip" data-val="field" onclick="selectChip(this,'img-type-chips')">📷 Field</div>
+          <div class="chip" data-val="satellite" onclick="selectChip(this,'img-type-chips')">🛰️ Satellite</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section" style="margin-bottom:16px">
+      <div class="form-section-title">GPS Coordinates</div>
+      <div class="form-row">
+        <div><label class="inp-label">Latitude</label><input class="inp inp-sm" id="up-lat" type="number" step="0.0001" placeholder="16.9241"/></div>
+        <div><label class="inp-label">Longitude</label><input class="inp inp-sm" id="up-lon" type="number" step="0.0001" placeholder="82.1931"/></div>
+      </div>
+      <button class="btn btn-outline btn-sm" style="margin-top:10px;width:auto" onclick="getGPS()">📍 Auto-detect GPS</button>
+    </div>
+
+    <div id="upload-mining" style="display:none;margin-bottom:14px">
+      <div class="mining-card">
+        <div class="mining-spinner"></div>
+        <div class="mining-title">Processing Upload</div>
+        <div class="mining-sub" id="mining-sub-text">Compressing image…</div>
+        <div class="progress-track"><div class="progress-bar" id="upload-progress-bar"></div></div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="btn-submit-upload" onclick="submitUpload()" disabled>
+      Upload &amp; Submit →
+    </button>
+  </div>
+
+  <!-- PROJECTS -->
+  <div class="page" id="page-projects">
+    <div style="font-size:20px;font-weight:800;margin-bottom:14px">My Projects</div>
+    <div class="filter-chips" id="proj-filter-chips">
+      <div class="fchip active" data-val="" onclick="filterProjects(this)">All</div>
+      <div class="fchip" data-val="pending" onclick="filterProjects(this)">Pending</div>
+      <div class="fchip" data-val="verified" onclick="filterProjects(this)">Verified</div>
+      <div class="fchip" data-val="minted" onclick="filterProjects(this)">Minted</div>
+      <div class="fchip" data-val="rejected" onclick="filterProjects(this)">Rejected</div>
+    </div>
+    <div id="projects-list"></div>
+    <div style="height:16px"></div>
+    <button class="btn btn-outline" onclick="openRegisterProjectSheet()">+ Register New Project</button>
+  </div>
+
+  <!-- WALLET -->
+  <div class="page" id="page-wallet">
+    <div style="font-size:20px;font-weight:800;margin-bottom:16px">BCT Wallet</div>
+    <div class="wallet-hero">
+      <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:8px">Your BCT Balance</div>
+      <div class="bct-balance" id="wallet-balance">0</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.6);margin-top:6px">Blue Carbon Tokens</div>
+      <div class="wallet-addr-box">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:4px">Wallet Address</div>
+        <div class="wallet-addr" id="wallet-addr">Not generated</div>
+      </div>
+      <button class="btn btn-outline btn-sm" style="margin-top:10px;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.15);color:rgba(255,255,255,.6);font-size:12px" onclick="copyWallet()">Copy Address</button>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div class="section-title" style="margin-bottom:12px">Smart Contract</div>
+      <div id="contract-display"></div>
+    </div>
+
+    <div class="section-title" style="margin-bottom:12px">Transaction History</div>
+    <div id="tx-history"></div>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="page" id="page-profile">
+    <div style="font-size:20px;font-weight:800;margin-bottom:16px">Profile</div>
+    <div id="profile-content"></div>
+    <div style="margin-top:20px">
+      <button class="btn btn-danger" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <div class="nav-btn active" id="nb-home" onclick="gotoPage('home')">
+      <span class="ni">🏠</span><span>Home</span>
+    </div>
+    <div class="nav-btn" id="nb-upload" onclick="gotoPage('upload')">
+      <span class="ni">📸</span><span>Upload</span>
+    </div>
+    <div class="nav-btn" id="nb-projects" onclick="gotoPage('projects')">
+      <span class="ni">🌿</span><span>Projects</span>
+      <div class="nav-notif" id="notif-badge" style="display:none">0</div>
+    </div>
+    <div class="nav-btn" id="nb-wallet" onclick="gotoPage('wallet')">
+      <span class="ni">🪙</span><span>Wallet</span>
+    </div>
+    <div class="nav-btn" id="nb-profile" onclick="gotoPage('profile')">
+      <span class="ni">👤</span><span>Profile</span>
+    </div>
+  </nav>
+</div>
+
+<!-- Register Project Sheet -->
+<div class="sheet-bg" id="reg-sheet-bg" onclick="if(event.target===this)closeSheet('reg-sheet-bg')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Register New Project</div>
+    <div class="inp-group"><label class="inp-label">Project Name *</label><input class="inp" id="np-name" placeholder="Godavari Delta Mangroves"/></div>
+    <div class="inp-group"><label class="inp-label">Location *</label><input class="inp" id="np-loc" placeholder="Kakinada, Andhra Pradesh"/></div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div><label class="inp-label">Latitude</label><input class="inp inp-sm" id="np-lat" type="number" step="0.0001" placeholder="16.924"/></div>
+      <div><label class="inp-label">Longitude</label><input class="inp inp-sm" id="np-lon" type="number" step="0.0001" placeholder="82.193"/></div>
+    </div>
+    <div class="inp-group"><label class="inp-label">Ecosystem Type</label>
+      <div class="chip-row" id="eco-chips" style="margin-top:4px">
+        <div class="chip active" data-val="MANGROVE" onclick="selectChip(this,'eco-chips')">🌳 Mangrove</div>
+        <div class="chip" data-val="SEAGRASS" onclick="selectChip(this,'eco-chips')">🌿 Seagrass</div>
+        <div class="chip" data-val="SALT_MARSH" onclick="selectChip(this,'eco-chips')">🏝️ Salt Marsh</div>
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom:14px">
+      <div><label class="inp-label">Area (ha) *</label><input class="inp inp-sm" id="np-area" type="number" step="0.1" placeholder="25.5"/></div>
+      <div><label class="inp-label">Growth Years</label><input class="inp inp-sm" id="np-years" type="number" placeholder="3" min="1"/></div>
+    </div>
+    <button class="btn btn-primary" onclick="submitNewProject()">Register Project →</button>
+    <button class="btn btn-outline" style="margin-top:10px" onclick="closeSheet('reg-sheet-bg')">Cancel</button>
+  </div>
+</div>
+
+<!-- Project Detail Sheet -->
+<div class="sheet-bg" id="detail-sheet-bg" onclick="if(event.target===this)closeSheet('detail-sheet-bg')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div id="detail-sheet-content"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  SHARED DATABASE (localStorage — same as admin panel)
+// ═══════════════════════════════════════════════════════
+const STORE_KEY = 'bcmrv2_';
+const DB = {
+  get(k){ try{return JSON.parse(localStorage.getItem(STORE_KEY+k))||null}catch{return null} },
+  set(k,v){ localStorage.setItem(STORE_KEY+k,JSON.stringify(v)); window.dispatchEvent(new StorageEvent('storage',{key:STORE_KEY+k})); },
+  users(){     return this.get('users')||[] },
+  projects(){  return this.get('projects')||[] },
+  images(){    return this.get('images')||[] },
+  credits(){   return this.get('credits')||[] },
+  blockchain(){return this.get('blockchain')||{blocks:[],txCount:0,blockNumber:1,contractAddress:null} },
+  saveUsers(v){    this.set('users',v) },
+  saveProjects(v){ this.set('projects',v) },
+  saveImages(v){   this.set('images',v) },
+  saveCredits(v){  this.set('credits',v) },
+  saveBlockchain(v){this.set('blockchain',v) },
+};
+
+// ═══════════════════════════════════════════════════════
+//  CRYPTO — real SHA-256 password hashing
+// ═══════════════════════════════════════════════════════
+async function sha256(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  BLOCKCHAIN
+// ═══════════════════════════════════════════════════════
+function genTxHash(){
+  return '0x'+Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function genWallet(){
+  return '0x'+Array.from(crypto.getRandomValues(new Uint8Array(20))).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function genIPFS(){
+  const chars='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  return 'Qm'+Array.from({length:44},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
+}
+
+// Carbon calc (IPCC)
+const RATES={MANGROVE:6,SEAGRASS:1.38,SALT_MARSH:2.18};
+const STOCKS={MANGROVE:100,SEAGRASS:70,SALT_MARSH:50};
+const MAT={MANGROVE:20,SEAGRASS:10,SALT_MARSH:15};
+function calcCarbon(area,eco,yrs){
+  const r=RATES[eco]||6,s=STOCKS[eco]||100,m=MAT[eco]||20;
+  const ann=r*area*yrs,frac=Math.min(yrs/m,1),bio=s*frac*area*3.67;
+  return Math.round((ann+bio)*0.8*100)/100;
+}
+
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let currentUser = null;
+let selectedFileB64 = null;
+let selectedFileName = '';
+let projFilter = '';
+
+// ═══════════════════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════════════════
+function switchTab(t){
+  document.getElementById('tab-login').classList.toggle('active',t==='login');
+  document.getElementById('tab-reg').classList.toggle('active',t==='register');
+  document.getElementById('form-login').style.display=t==='login'?'block':'none';
+  document.getElementById('form-reg').style.display=t==='register'?'block':'none';
+}
+
+async function doLogin(){
+  const email=document.getElementById('l-email').value.trim().toLowerCase();
+  const pass=document.getElementById('l-pass').value;
+  if(!email||!pass){toast('Enter email and password','error');return;}
+  const hash=await sha256(pass);
+  const users=DB.users();
+  const u=users.find(x=>x.email===email&&x.passHash===hash);
+  if(!u){toast('Invalid email or password','error');return;}
+  if(u.role==='admin'||u.role==='verifier'){toast('Use the Admin Dashboard to sign in','error');return;}
+  currentUser=u;
+  DB.set('session',{userId:u.id});
+  launchApp();
+}
+
+async function doRegister(){
+  const name=document.getElementById('r-name').value.trim();
+  const email=document.getElementById('r-email').value.trim().toLowerCase();
+  const pass=document.getElementById('r-pass').value;
+  const org=document.getElementById('r-org').value.trim();
+  if(!name||!email||!pass){toast('All fields required','error');return;}
+  if(pass.length<6){toast('Password must be at least 6 characters','error');return;}
+  const users=DB.users();
+  if(users.find(u=>u.email===email)){toast('Email already registered','error');return;}
+  const hash=await sha256(pass);
+  const wallet=genWallet();
+  const u={
+    id: Date.now(),
+    name,email,passHash:hash,
+    role:'ngo_worker',
+    organisation:org,
+    wallet,
+    bctBalance:0,
+    created:new Date().toISOString()
+  };
+  users.push(u);
+  DB.saveUsers(users);
+  currentUser=u;
+  DB.set('session',{userId:u.id});
+  launchApp();
+  toast('Account created successfully! 🎉','success');
+}
+
+function launchApp(){
+  document.getElementById('screen-auth').classList.remove('active');
+  document.getElementById('screen-app').classList.add('active');
+  document.getElementById('hdr-avatar').textContent=currentUser.name[0].toUpperCase();
+  document.getElementById('greet-name').textContent=currentUser.name.split(' ')[0];
+  document.getElementById('hdr-sub').textContent=currentUser.organisation||'Field Worker';
+  populateProjectDropdown();
+  refreshHome();
+}
+
+function doLogout(){
+  currentUser=null; selectedFileB64=null;
+  DB.set('session',null);
+  localStorage.removeItem(STORE_KEY+'session');
+  document.getElementById('screen-app').classList.remove('active');
+  document.getElementById('screen-auth').classList.add('active');
+  document.getElementById('l-email').value='';
+  document.getElementById('l-pass').value='';
+}
+
+// ═══════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════
+function gotoPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  ['home','upload','projects','wallet','profile'].forEach(n=>{
+    document.getElementById('nb-'+n)?.classList.toggle('active',n===id);
+  });
+  const handlers={
+    home:refreshHome, upload:refreshUpload, projects:()=>renderProjects(projFilter),
+    wallet:renderWallet, profile:renderProfile
+  };
+  if(handlers[id]) handlers[id]();
+}
+
+// ═══════════════════════════════════════════════════════
+//  HOME
+// ═══════════════════════════════════════════════════════
+function refreshHome(){
+  const myProjects=DB.projects().filter(p=>p.owner_id===currentUser.id);
+  const pending=myProjects.filter(p=>p.status==='pending');
+
+  // pending uploads section
+  const pendSec=document.getElementById('pending-uploads-section');
+  const pendList=document.getElementById('pending-uploads-list');
+  if(pending.length){
+    pendSec.style.display='block';
+    pendList.innerHTML=pending.map(p=>`
+      <div class="project-card" onclick="showProjectDetail(${p.id})">
+        <div class="pc-top">
+          <div class="pc-name">${p.name}</div>
+          <div class="pc-eco">${ecoIcon(p.ecosystem_type)}</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="status-pill pending"><div class="dot"></div>Awaiting Admin Review</div>
+          <div style="font-size:11px;color:var(--text2)">${p.carbon_tonnes?.toLocaleString()||'?'} tCO₂e</div>
+        </div>
+      </div>`).join('');
+  } else {
+    pendSec.style.display='none';
+  }
+
+  const hp=document.getElementById('home-projects');
+  if(!myProjects.length){
+    hp.innerHTML=`<div class="empty"><div class="empty-icon">🌿</div><h3>No projects yet</h3><p>Register your first restoration site</p></div>`;
+  } else {
+    hp.innerHTML=myProjects.slice(0,3).map(p=>projectCardHTML(p)).join('');
+  }
+
+  // notif badge
+  const nb=document.getElementById('notif-badge');
+  nb.style.display=pending.length?'flex':'none';
+  nb.textContent=pending.length;
+
+  document.getElementById('greet-sub').textContent=
+    `${myProjects.length} project${myProjects.length!==1?'s':''} registered`;
+}
+
+function projectCardHTML(p){
+  const imgs=DB.images().filter(i=>i.project_id===p.id);
+  return `<div class="project-card" onclick="showProjectDetail(${p.id})">
+    <div class="pc-top">
+      <div class="pc-name">${p.name}</div>
+      <div class="pc-eco">${ecoIcon(p.ecosystem_type)}</div>
+    </div>
+    <div class="pc-meta">
+      <span class="pc-stat">📍 ${p.location_text||'—'}</span>
+      <span class="pc-stat">📐 ${p.area_hectares} ha</span>
+      <span class="pc-stat">📸 ${imgs.length} image${imgs.length!==1?'s':''}</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+      <div class="status-pill ${p.status}"><div class="dot"></div>${p.status}</div>
+      <div style="font-size:12px;color:var(--text2);font-family:var(--mono)">${p.carbon_tonnes?.toLocaleString()||'?'} tCO₂e</div>
+    </div>
+  </div>`;
+}
+
+function ecoIcon(t){return t==='MANGROVE'?'🌳':t==='SEAGRASS'?'🌿':'🏝️';}
+
+// ═══════════════════════════════════════════════════════
+//  PROJECTS PAGE
+// ═══════════════════════════════════════════════════════
+function filterProjects(el){
+  document.querySelectorAll('#proj-filter-chips .fchip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  projFilter=el.dataset.val||'';
+  renderProjects(projFilter);
+}
+
+function renderProjects(filter=''){
+  let projects=DB.projects().filter(p=>p.owner_id===currentUser.id);
+  if(filter) projects=projects.filter(p=>p.status===filter);
+  const el=document.getElementById('projects-list');
+  if(!projects.length){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">🌿</div><h3>${filter?`No ${filter} projects`:'No projects yet'}</h3></div>`;
+  } else {
+    el.innerHTML=projects.map(p=>projectCardHTML(p)).join('');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  PROJECT DETAIL SHEET
+// ═══════════════════════════════════════════════════════
+function showProjectDetail(id){
+  const p=DB.projects().find(x=>x.id===id);
+  if(!p) return;
+  const imgs=DB.images().filter(i=>i.project_id===id);
+  const credit=DB.credits().find(c=>c.project_id===id);
+
+  let html=`
+    <div class="sheet-title">${p.name}</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+      <span class="status-pill ${p.status}"><div class="dot"></div>${p.status}</span>
+      <span style="font-size:12px;color:var(--text2)">${p.ecosystem_type.replace('_',' ')} · ${p.area_hectares} ha</span>
+    </div>
+    <div style="background:var(--card2);border-radius:var(--r);padding:14px;margin-bottom:14px">
+      <div class="info-row"><span class="info-lbl">Location</span><span class="info-val">${p.location_text||'—'}</span></div>
+      <div class="info-row"><span class="info-lbl">Growth Years</span><span class="info-val">${p.growth_years||'—'}</span></div>
+      <div class="info-row" style="border-bottom:none"><span class="info-lbl">Est. CO₂e</span><span class="info-val" style="color:var(--green)">${p.carbon_tonnes?.toLocaleString()||'?'} t</span></div>
+    </div>`;
+
+  if(p.ipfs_hash){
+    html+=`<div style="margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:6px">IPFS Hash (Latest Image)</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--cyan);background:var(--card2);padding:10px;border-radius:8px;word-break:break-all">${p.ipfs_hash}</div>
+    </div>`;
+  }
+
+  if(credit&&p.tx_hash){
+    html+=`<div style="background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.2);border-radius:var(--r);padding:14px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;color:var(--cyan);margin-bottom:8px">🪙 Carbon Credits Minted</div>
+      <div class="info-row"><span class="info-lbl">BCT Amount</span><span class="info-val" style="color:var(--green)">${credit.amount_tonnes.toLocaleString()} BCT</span></div>
+      <div class="info-row" style="border-bottom:none"><span class="info-lbl">Tx Hash</span><span style="font-family:var(--mono);font-size:10px;color:var(--cyan)">${p.tx_hash.slice(0,26)}…</span></div>
+    </div>`;
+  }
+
+  if(imgs.length){
+    html+=`<div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;margin-bottom:8px">Uploaded Images (${imgs.length})</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        ${imgs.map(i=>i.imageB64?
+          `<img src="${i.imageB64}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--border)"/>`:
+          `<div style="aspect-ratio:1;background:var(--card2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px">${i.image_type==='drone'?'🚁':'📷'}</div>`
+        ).join('')}
+      </div>
+    </div>`;
+  }
+
+  if(p.status==='pending'){
+    html+=`<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:var(--r);padding:12px;font-size:13px;color:var(--amber)">
+      ⏳ This project is pending verification by an admin. You will be notified when it's reviewed.
+    </div>`;
+  }
+
+  document.getElementById('detail-sheet-content').innerHTML=html;
+  document.getElementById('detail-sheet-bg').classList.add('open');
+}
+
+// ═══════════════════════════════════════════════════════
+//  UPLOAD
+// ═══════════════════════════════════════════════════════
+function refreshUpload(){
+  populateProjectDropdown();
+  checkUploadBtn();
+}
+
+function populateProjectDropdown(){
+  const sel=document.getElementById('up-project');
+  const projects=DB.projects().filter(p=>p.owner_id===currentUser.id);
+  sel.innerHTML='<option value="">Choose a project…</option>'+
+    projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  sel.onchange=checkUploadBtn;
+}
+
+function triggerCamera(){
+  document.getElementById('file-inp').click();
+}
+
+function onFileSelect(inp){
+  const file=inp.files[0];
+  if(!file) return;
+  if(file.size>20*1024*1024){toast('File too large (max 20MB)','error');return;}
+  selectedFileName=file.name;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    selectedFileB64=e.target.result;
+    const img=document.getElementById('preview-img');
+    img.src=selectedFileB64; img.style.display='block';
+    document.getElementById('photo-zone-inner').style.display='none';
+    document.getElementById('photo-zone').classList.add('has-photo');
+    checkUploadBtn();
+    toast('Photo selected ✓','success');
+  };
+  reader.readAsDataURL(file);
+}
+
+function checkUploadBtn(){
+  const projId=document.getElementById('up-project').value;
+  document.getElementById('btn-submit-upload').disabled=!(selectedFileB64&&projId);
+}
+
+function getGPS(){
+  const gpsEl=document.getElementById('gps-status');
+  const gpsText=document.getElementById('gps-text');
+  gpsEl.style.display='flex'; gpsText.textContent='Acquiring GPS…';
+  if(!navigator.geolocation){toast('GPS not available on this device','error');return;}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    document.getElementById('up-lat').value=pos.coords.latitude.toFixed(6);
+    document.getElementById('up-lon').value=pos.coords.longitude.toFixed(6);
+    gpsText.textContent=`GPS: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+    toast('GPS coordinates captured!','success');
+  },()=>{
+    gpsEl.style.display='none';
+    toast('GPS unavailable, enter manually','warn');
+  },{enableHighAccuracy:true,timeout:10000});
+}
+
+function selectChip(el,groupId){
+  document.querySelectorAll(`#${groupId} .chip`).forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+async function submitUpload(){
+  const projId=parseInt(document.getElementById('up-project').value);
+  const imgType=document.querySelector('#img-type-chips .chip.active')?.dataset.val||'drone';
+  const lat=document.getElementById('up-lat').value||null;
+  const lon=document.getElementById('up-lon').value||null;
+
+  if(!selectedFileB64||!projId){toast('Select a project and photo','error');return;}
+
+  const btn=document.getElementById('btn-submit-upload');
+  btn.disabled=true;
+  document.getElementById('upload-mining').style.display='block';
+  const bar=document.getElementById('upload-progress-bar');
+  const sub=document.getElementById('mining-sub-text');
+
+  const steps=[
+    [20,'Compressing image…'],
+    [45,'Computing SHA-256 hash…'],
+    [65,'Simulating IPFS upload…'],
+    [85,'Generating IPFS CID…'],
+    [100,'Upload complete!']
+  ];
+
+  for(const [pct,msg] of steps){
+    await new Promise(r=>setTimeout(r,400+Math.random()*300));
+    bar.style.width=pct+'%'; sub.textContent=msg;
+  }
+
+  const ipfsHash=genIPFS();
+  const projects=DB.projects();
+  const p=projects.find(x=>x.id===projId);
+  if(p){ p.ipfs_hash=ipfsHash; DB.saveProjects(projects); }
+
+  const images=DB.images();
+  images.push({
+    id: Date.now(),
+    project_id: projId,
+    project_name: p?.name||'',
+    owner_id: currentUser.id,
+    owner_name: currentUser.name,
+    filename: selectedFileName,
+    ipfs_hash: ipfsHash,
+    imageB64: selectedFileB64,
+    image_type: imgType,
+    latitude: lat,
+    longitude: lon,
+    status: 'pending_review',
+    created: new Date().toISOString()
+  });
+  DB.saveImages(images);
+
+  await new Promise(r=>setTimeout(r,400));
+  document.getElementById('upload-mining').style.display='none';
+  bar.style.width='0%';
+  btn.disabled=false;
+  selectedFileB64=null;
+  document.getElementById('file-inp').value='';
+  document.getElementById('preview-img').style.display='none';
+  document.getElementById('photo-zone-inner').style.display='flex';
+  document.getElementById('photo-zone').classList.remove('has-photo');
+  document.getElementById('up-lat').value='';
+  document.getElementById('up-lon').value='';
+
+  toast(`📸 Uploaded! IPFS: ${ipfsHash.slice(0,14)}… — awaiting admin review`,'success');
+  refreshHome();
+}
+
+// ═══════════════════════════════════════════════════════
+//  WALLET PAGE
+// ═══════════════════════════════════════════════════════
+function renderWallet(){
+  const credits=DB.credits().filter(c=>c.owner_id===currentUser.id);
+  const total=credits.reduce((s,c)=>s+c.amount_tonnes,0);
+  document.getElementById('wallet-balance').textContent=total.toLocaleString();
+  document.getElementById('wallet-addr').textContent=currentUser.wallet||'No wallet';
+
+  const chain=DB.blockchain();
+  const contractEl=document.getElementById('contract-display');
+  if(chain.contractAddress){
+    contractEl.innerHTML=`<div class="contract-card">
+      <div class="contract-label">BlueCarbonToken (BCT) — Deployed</div>
+      <div class="contract-addr">${chain.contractAddress}</div>
+    </div>
+    <div class="contract-card">
+      <div class="contract-label">Network</div>
+      <div style="font-size:13px;color:var(--text)">Blue Carbon Testnet · Chain ID 31337</div>
+    </div>`;
+  } else {
+    contractEl.innerHTML=`<div class="contract-card">
+      <div class="contract-label">Smart Contract</div>
+      <div class="not-deployed">⚠️ Not deployed yet. Admin must deploy the contract first.</div>
+    </div>`;
+  }
+
+  const txEl=document.getElementById('tx-history');
+  const myBlocks=chain.blocks.filter(b=>
+    b.ownerId===currentUser.id||
+    credits.some(c=>c.tx_hash===b.txHash)
+  );
+  if(!myBlocks.length&&!credits.length){
+    txEl.innerHTML=`<div class="empty"><div class="empty-icon">⛓️</div><h3>No transactions yet</h3><p>Transactions appear here once your projects are minted</p></div>`;
+    return;
+  }
+  txEl.innerHTML=credits.map(c=>`
+    <div class="tx-card">
+      <div class="tx-top">
+        <div class="tx-icon-circle" style="background:rgba(16,185,129,.15)">🪙</div>
+        <div style="flex:1">
+          <div class="tx-type">Carbon Credits Minted</div>
+          <div class="tx-time">${new Date(c.minted).toLocaleString()}</div>
+        </div>
+        <div class="tx-amount" style="color:var(--green)">+${c.amount_tonnes.toLocaleString()} BCT</div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:4px">${c.project_name}</div>
+      <div class="tx-hash">${c.tx_hash}</div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  PROFILE
+// ═══════════════════════════════════════════════════════
+function renderProfile(){
+  const u=currentUser;
+  const myProjects=DB.projects().filter(p=>p.owner_id===u.id);
+  document.getElementById('profile-content').innerHTML=`
+    <div style="display:flex;align-items:center;gap:14px;background:var(--card);border-radius:var(--r2);padding:18px;margin-bottom:14px;border:1px solid var(--border)">
+      <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff">${u.name[0].toUpperCase()}</div>
+      <div>
+        <div style="font-size:17px;font-weight:800">${u.name}</div>
+        <div style="font-size:12px;color:var(--text2)">${u.organisation||'Independent'}</div>
+      </div>
+    </div>
+    <div style="background:var(--card);border-radius:var(--r2);padding:16px;border:1px solid var(--border)">
+      <div class="info-row"><span class="info-lbl">Email</span><span class="info-val">${u.email}</span></div>
+      <div class="info-row"><span class="info-lbl">Role</span><span class="info-val" style="text-transform:capitalize">${u.role.replace('_',' ')}</span></div>
+      <div class="info-row"><span class="info-lbl">Projects</span><span class="info-val">${myProjects.length}</span></div>
+      <div class="info-row" style="border-bottom:none"><span class="info-lbl">Member Since</span><span class="info-val">${new Date(u.created).toLocaleDateString()}</span></div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  REGISTER PROJECT
+// ═══════════════════════════════════════════════════════
+function openRegisterProjectSheet(){
+  document.getElementById('reg-sheet-bg').classList.add('open');
+}
+function closeSheet(id){
+  document.getElementById(id).classList.remove('open');
+}
+
+function submitNewProject(){
+  const name=document.getElementById('np-name').value.trim();
+  const loc=document.getElementById('np-loc').value.trim();
+  const area=parseFloat(document.getElementById('np-area').value);
+  const eco=document.querySelector('#eco-chips .chip.active')?.dataset.val||'MANGROVE';
+  const years=parseInt(document.getElementById('np-years').value)||1;
+  const lat=parseFloat(document.getElementById('np-lat').value)||null;
+  const lon=parseFloat(document.getElementById('np-lon').value)||null;
+
+  if(!name||!loc||!area){toast('Name, location and area required','error');return;}
+
+  const projects=DB.projects();
+  const carbon=calcCarbon(area,eco,years);
+  const p={
+    id: Date.now(),
+    owner_id: currentUser.id,
+    owner_name: currentUser.name,
+    name,
+    description:'',
+    location_text: loc,
+    latitude: lat,
+    longitude: lon,
+    area_hectares: area,
+    ecosystem_type: eco,
+    growth_years: years,
+    carbon_tonnes: carbon,
+    status:'pending',
+    ipfs_hash:null,
+    tx_hash:null,
+    created: new Date().toISOString()
+  };
+  projects.push(p);
+  DB.saveProjects(projects);
+
+  toast(`✅ Project registered! ~${carbon.toLocaleString()} tCO₂e estimated`,'success');
+  closeSheet('reg-sheet-bg');
+  document.getElementById('np-name').value='';
+  document.getElementById('np-loc').value='';
+  document.getElementById('np-area').value='';
+  document.getElementById('np-years').value='';
+  populateProjectDropdown();
+  refreshHome();
+}
+
+function copyWallet(){
+  const addr=currentUser.wallet;
+  if(navigator.clipboard) navigator.clipboard.writeText(addr).then(()=>toast('Copied!','success'));
+  else toast('Wallet: '+addr,'info');
+}
+
+// ═══════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════
+function toast(msg,type='success'){
+  const wrap=document.getElementById('toast-wrap');
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  const icons={success:'✅',error:'❌',info:'ℹ️',warn:'⚠️'};
+  el.innerHTML=`<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  wrap.appendChild(el);
+  setTimeout(()=>{el.classList.add('out');setTimeout(()=>el.remove(),280);},3500);
+}
+
+// Listen for cross-tab storage updates (admin verified a project)
+window.addEventListener('storage', e=>{
+  if(currentUser&&e.key&&e.key.startsWith(STORE_KEY)){
+    refreshHome();
+    if(document.getElementById('page-projects').classList.contains('active')) renderProjects(projFilter);
+    if(document.getElementById('page-wallet').classList.contains('active')) renderWallet();
+  }
+});
+
+// Enter key on login
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    if(!document.getElementById('form-login').style.display||document.getElementById('form-login').style.display!=='none') doLogin();
+  }
+});
+
+// ═══════════════════════════════════════════════════════
+//  INIT — restore session on page load/reload (Bug fix)
+// ═══════════════════════════════════════════════════════
+function init(){
+  const session=DB.get('session');
+  if(session&&session.userId){
+    const users=DB.users();
+    const u=users.find(x=>x.id===session.userId);
+    if(u&&u.role==='ngo_worker'){
+      currentUser=u;
+      launchApp();
+      return;
+    }
+    localStorage.removeItem(STORE_KEY+'session');
+  }
+  document.getElementById('screen-auth').classList.add('active');
+  document.getElementById('screen-app').classList.remove('active');
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "blue-carbon-mrv-blockchain",
+  "version": "1.0.0",
+  "description": "BlueCarbonToken Smart Contract — Hardhat Project",
+  "scripts": {
+    "compile":    "npx hardhat compile",
+    "test":       "npx hardhat test",
+    "node":       "npx hardhat node",
+    "deploy:local":   "npx hardhat run scripts/deploy.js --network localhost",
+    "deploy:sepolia": "npx hardhat run scripts/deploy.js --network sepolia"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.22.2"
+  }
+}

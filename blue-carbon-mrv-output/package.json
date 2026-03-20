@@ -1,0 +1,25 @@
+{
+  "name": "blue-carbon-mrv",
+  "version": "1.0.0",
+  "description": "Blue Carbon MRV Full Platform — Frontend, Backend, Blockchain, Database",
+  "private": true,
+  "scripts": {
+    "install:all":           "npm install && cd backend && npm install",
+    "install:blockchain":    "cd blockchain && npm install",
+    "db:migrate":            "node database/migrate.js",
+    "backend:dev":           "cd backend && npm run dev",
+    "backend:start":         "cd backend && npm start",
+    "frontend:admin":        "npx http-server frontend/admin -p 3002 --cors -o",
+    "frontend:mobile":       "npx http-server frontend/mobile -p 3003 --cors -o",
+    "frontend:both":         "npm run frontend:admin & npm run frontend:mobile",
+    "dev":                   "npm run backend:dev & npm run frontend:admin & npm run frontend:mobile",
+    "blockchain:node":       "cd blockchain && npx hardhat node",
+    "blockchain:deploy":     "cd blockchain && npx hardhat run scripts/deploy.js --network localhost",
+    "blockchain:test":       "cd blockchain && npx hardhat test",
+    "start":                 "npm run backend:start"
+  },
+  "dependencies": {
+    "http-server": "^14.1.1",
+    "concurrently": "^8.2.2"
+  }
+}

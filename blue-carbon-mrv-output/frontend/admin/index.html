@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Blue Carbon MRV — Admin Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050d1a;--bg2:#081122;--bg3:#0a1528;
+  --surf:#0d1c35;--surf2:#112140;--surf3:#162849;
+  --brd:#1a2f52;--brd2:#1e3660;
+  --gold:#f0b429;--gold2:#fcd34d;
+  --teal:#14b8a6;--teal2:#2dd4bf;
+  --green:#22c55e;--red:#f43f5e;--blue:#3b82f6;--purple:#8b5cf6;
+  --text:#dce8ff;--text2:#5a7aaa;--text3:#2d4570;
+  --font:'DM Sans',sans-serif;--display:'Syne',sans-serif;--mono:'Fira Code',monospace;
+  --r:10px;--r2:16px;
+}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);overflow:hidden}
+::selection{background:rgba(240,180,41,.2)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:2px}
+::-webkit-scrollbar-track{background:transparent}
+
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 800px 600px at 80% 10%,rgba(240,180,41,.04) 0%,transparent 60%),
+    radial-gradient(ellipse 600px 400px at 10% 80%,rgba(20,184,166,.05) 0%,transparent 50%);
+}
+
+/* ── AUTH ─────────────────────────────────────────────── */
+#auth-wrap{
+  position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(ellipse 50% 50% at 50% 0%,rgba(240,180,41,.08) 0%,transparent 60%),
+    var(--bg);
+}
+.auth-card{
+  width:420px;background:var(--surf);border:1px solid var(--brd2);border-radius:20px;
+  padding:40px;box-shadow:0 40px 120px rgba(0,0,0,.7);
+}
+.auth-logo-row{display:flex;align-items:center;gap:12px;margin-bottom:32px}
+.auth-logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#f0b429,#fcd34d);display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 30px rgba(240,180,41,.4)}
+.auth-logo-text h1{font-family:var(--display);font-size:17px;font-weight:800}
+.auth-logo-text span{font-size:11px;color:var(--text2)}
+.auth-title{font-family:var(--display);font-size:26px;font-weight:800;margin-bottom:6px}
+.auth-sub{font-size:13px;color:var(--text2);margin-bottom:28px;line-height:1.5}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.field label{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text2)}
+.field input,.field select{
+  background:var(--surf2);border:1.5px solid var(--brd);border-radius:var(--r);
+  padding:13px 15px;color:var(--text);font-size:14px;font-family:var(--font);outline:none;
+  transition:all .18s;
+}
+.field input:focus,.field select:focus{border-color:var(--gold);background:var(--surf3);box-shadow:0 0 0 3px rgba(240,180,41,.1)}
+.field select option{background:var(--surf2)}
+.auth-error{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);border-radius:8px;padding:10px 13px;font-size:13px;color:var(--red);margin-bottom:14px;display:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:12px 20px;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--font);transition:all .15s;white-space:nowrap}
+.btn-gold{background:linear-gradient(135deg,#f0b429,#fcd34d);color:#000;box-shadow:0 4px 20px rgba(240,180,41,.3)}
+.btn-gold:hover{background:linear-gradient(135deg,#fcd34d,#fde68a);box-shadow:0 6px 28px rgba(240,180,41,.4)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--brd2)}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+.btn-green{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.btn-green:hover{background:rgba(34,197,94,.25)}
+.btn-red{background:rgba(244,63,94,.12);color:var(--red);border:1px solid rgba(244,63,94,.3)}
+.btn-red:hover{background:rgba(244,63,94,.22)}
+.btn-teal{background:rgba(20,184,166,.15);color:var(--teal2);border:1px solid rgba(20,184,166,.3)}
+.btn-teal:hover{background:rgba(20,184,166,.25)}
+.btn-sm{padding:7px 13px;font-size:12px}
+.btn-xs{padding:4px 9px;font-size:11px;border-radius:7px}
+.btn-full{width:100%}
+.btn:disabled{opacity:.38;cursor:not-allowed}
+.auth-register-link{text-align:center;margin-top:16px;font-size:13px;color:var(--text2)}
+.auth-register-link a{color:var(--gold);cursor:pointer;font-weight:600}
+.auth-register-link a:hover{color:var(--gold2)}
+
+/* register panel */
+#auth-register-panel{display:none}
+
+/* ── APP ─────────────────────────────────────────────── */
+#app{display:none;height:100vh;grid-template-columns:230px 1fr;position:relative;z-index:1}
+
+/* ── SIDEBAR ─────────────────────────────────────────── */
+.sidebar{
+  background:var(--surf);border-right:1px solid var(--brd);
+  display:flex;flex-direction:column;overflow-y:auto;
+}
+.sidebar-top{padding:22px 18px 16px;border-bottom:1px solid var(--brd)}
+.sidebar-logo{
+  width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#f0b429,#fcd34d);
+  display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:10px;
+  box-shadow:0 0 20px rgba(240,180,41,.3);
+}
+.sidebar-top h1{font-family:var(--display);font-size:15px;font-weight:800}
+.sidebar-top span{font-size:10px;color:var(--text2)}
+.sidebar-nav{padding:12px 10px;flex:1}
+.nav-section{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text3);padding:10px 10px 5px}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;
+  border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;
+  color:var(--text2);margin-bottom:1px;transition:.12s;position:relative;
+}
+.nav-item:hover{background:var(--surf2);color:var(--text)}
+.nav-item.active{background:rgba(240,180,41,.1);color:var(--gold)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);height:55%;width:2px;background:var(--gold);border-radius:2px}
+.nav-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px}
+.nav-badge.gold{background:var(--gold);color:#000}
+.sidebar-footer{padding:14px;border-top:1px solid var(--brd)}
+.user-pill{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.user-ava{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#000;flex-shrink:0}
+.user-name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-role-tag{font-size:10px;color:var(--text2)}
+.chain-status{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);background:var(--surf2);border-radius:7px;padding:7px 10px}
+.chain-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── MAIN ─────────────────────────────────────────────── */
+.main{display:flex;flex-direction:column;overflow:hidden}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 28px;border-bottom:1px solid var(--brd);background:var(--bg);flex-shrink:0;
+}
+.page-title{font-family:var(--display);font-size:20px;font-weight:800}
+.page-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.block-chip{
+  display:flex;align-items:center;gap:7px;background:rgba(240,180,41,.08);
+  border:1px solid rgba(240,180,41,.2);border-radius:20px;padding:5px 12px;
+  font-size:11px;font-weight:600;color:var(--gold);
+}
+.content{flex:1;overflow-y:auto;padding:24px 28px}
+
+/* ── PAGES ───────────────────────────────────────────── */
+.page{display:none}
+.page.active{display:block;animation:fadeUp .2s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── STATS ───────────────────────────────────────────── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat-card{
+  background:var(--surf);border:1px solid var(--brd);border-radius:var(--r2);padding:18px 20px;
+  position:relative;overflow:hidden;transition:.2s;
+}
+.stat-card:hover{border-color:var(--brd2);transform:translateY(-1px)}
+.stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transition:.2s}
+.stat-card:hover::after{opacity:.5}
+.s-lbl{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text2);margin-bottom:8px}
+.s-val{font-family:var(--display);font-size:32px;font-weight:800;line-height:1;color:var(--gold)}
+.s-val.teal{color:var(--teal2)}
+.s-val.green{color:var(--green)}
+.s-val.red{color:var(--red)}
+.s-sub{font-size:11px;color:var(--text3);margin-top:5px}
+.s-icon{position:absolute;right:14px;top:14px;font-size:24px;opacity:.1}
+
+/* ── CARD ────────────────────────────────────────────── */
+.card{background:var(--surf);border:1px solid var(--brd);border-radius:var(--r2);padding:20px;margin-bottom:16px}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-family:var(--display);font-size:15px;font-weight:700}
+.card-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+
+/* ── TABLE ───────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;padding:9px 14px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text2);border-bottom:1px solid var(--brd);white-space:nowrap}
+tbody tr{border-bottom:1px solid rgba(26,47,82,.6);transition:.1s;cursor:pointer}
+tbody tr:hover{background:var(--surf2)}
+tbody td{padding:11px 14px;vertical-align:middle}
+tbody tr:last-child{border-bottom:none}
+
+/* ── BADGES ──────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
+.badge-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.b-pending{background:rgba(245,158,11,.12);color:#f59e0b}
+.b-verified{background:rgba(34,197,94,.12);color:var(--green)}
+.b-rejected{background:rgba(244,63,94,.12);color:var(--red)}
+.b-minted{background:rgba(20,184,166,.12);color:var(--teal2)}
+.b-admin{background:rgba(240,180,41,.12);color:var(--gold)}
+
+/* ── UPLOAD REVIEW CARD ──────────────────────────────── */
+.upload-review-card{
+  background:var(--surf);border:1.5px solid var(--brd);border-radius:var(--r2);
+  overflow:hidden;transition:.18s;margin-bottom:14px;
+}
+.upload-review-card:hover{border-color:var(--brd2)}
+.urc-photo{
+  width:100%;height:200px;object-fit:cover;background:var(--surf2);
+  display:flex;align-items:center;justify-content:center;font-size:48px;
+}
+.urc-photo img{width:100%;height:200px;object-fit:cover;cursor:pointer;transition:.15s}
+.urc-photo img:hover{opacity:.9}
+.urc-body{padding:16px}
+.urc-title{font-size:14px;font-weight:700;margin-bottom:4px}
+.urc-meta{font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6}
+.urc-ipfs{font-family:var(--mono);font-size:10px;color:var(--teal2);background:var(--surf2);padding:6px 10px;border-radius:6px;margin-bottom:12px;word-break:break-all}
+.urc-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── MODAL ───────────────────────────────────────────── */
+.modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{
+  background:var(--surf);border:1px solid var(--brd2);border-radius:var(--r2);
+  width:min(640px,96vw);max-height:88vh;overflow-y:auto;padding:28px;
+  animation:modalIn .2s ease;box-shadow:0 40px 120px rgba(0,0,0,.8);
+}
+.modal-lg{width:min(820px,96vw)}
+@keyframes modalIn{from{opacity:0;transform:scale(.95)translateY(-8px)}to{opacity:1;transform:scale(1)}}
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
+.modal-title{font-family:var(--display);font-size:18px;font-weight:800}
+.modal-x{background:none;border:none;color:var(--text2);cursor:pointer;font-size:22px;line-height:1;padding:0}
+.modal-x:hover{color:var(--text)}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field.full{grid-column:1/-1}
+.field textarea{background:var(--surf2);border:1.5px solid var(--brd);border-radius:var(--r);padding:12px 14px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;resize:vertical;min-height:80px;transition:.15s}
+.field textarea:focus{border-color:var(--gold)}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--brd)}
+
+/* ── TX PANEL ────────────────────────────────────────── */
+.tx-panel{
+  background:linear-gradient(135deg,rgba(240,180,41,.06),rgba(20,184,166,.04));
+  border:1px solid rgba(240,180,41,.2);border-radius:var(--r2);padding:18px;margin-bottom:14px;
+}
+.tx-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.tx-icon-box{width:38px;height:38px;border-radius:10px;background:rgba(240,180,41,.12);display:flex;align-items:center;justify-content:center;font-size:18px}
+.tx-htitle{font-family:var(--display);font-size:14px;font-weight:700;color:var(--gold)}
+.tx-hsub{font-size:11px;color:var(--text2)}
+.tx-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--brd)}
+.tx-row:last-child{border-bottom:none}
+.tx-lbl{font-size:11px;color:var(--text2)}
+.tx-val{font-family:var(--mono);font-size:12px;color:var(--text)}
+.progress-bar{height:4px;background:var(--brd);border-radius:2px;overflow:hidden;margin:8px 0}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--teal2));border-radius:2px;width:0%;transition:width .3s}
+.mining-dots span{animation:blink 1.4s infinite both}
+.mining-dots span:nth-child(2){animation-delay:.2s}
+.mining-dots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:0}40%{opacity:1}}
+
+/* ── BLOCKCHAIN EXPLORER ─────────────────────────────── */
+.block-card{
+  background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r);
+  padding:14px 16px;display:flex;align-items:center;gap:14px;
+  margin-bottom:8px;cursor:pointer;transition:.15s;
+}
+.block-card:hover{border-color:var(--brd2);background:var(--surf3)}
+.block-num{font-family:var(--display);font-size:20px;font-weight:800;color:var(--gold);min-width:54px;text-align:center}
+.block-info{flex:1}
+.block-type{font-size:13px;font-weight:700;margin-bottom:3px}
+.block-hash{font-family:var(--mono);font-size:11px;color:var(--teal2)}
+.block-meta{font-size:11px;color:var(--text2);margin-top:2px}
+.block-time{font-size:11px;color:var(--text3);font-family:var(--mono);flex-shrink:0}
+
+/* ── CONTRACT DEPLOY ─────────────────────────────────── */
+.deploy-card{
+  background:linear-gradient(135deg,rgba(240,180,41,.08),rgba(20,184,166,.05));
+  border:1.5px solid rgba(240,180,41,.25);border-radius:var(--r2);padding:22px;
+  margin-bottom:20px;
+}
+.deploy-status{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;margin-bottom:6px}
+.deploy-addr{font-family:var(--mono);font-size:12px;color:var(--teal2);background:var(--surf2);padding:10px 13px;border-radius:8px;margin-top:10px;word-break:break-all;border:1px solid var(--brd)}
+
+/* ── MAP ─────────────────────────────────────────────── */
+#proj-map{width:100%;height:320px;border-radius:var(--r);border:1px solid var(--brd);overflow:hidden}
+.leaflet-container{background:#050d1a!important}
+.leaflet-tile{filter:invert(1)hue-rotate(180deg)saturate(.6)brightness(.75)}
+
+/* ── PHOTO LIGHTBOX ──────────────────────────────────── */
+#lightbox{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.92);align-items:center;justify-content:center;cursor:pointer}
+#lightbox.open{display:flex}
+#lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:8px;box-shadow:0 20px 80px rgba(0,0,0,.8)}
+
+/* ── FILTER BAR ──────────────────────────────────────── */
+.filter-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.filter-bar input,.filter-bar select{
+  background:var(--surf2);border:1px solid var(--brd);border-radius:8px;
+  padding:9px 13px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;
+  transition:.15s;
+}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--gold)}
+.filter-bar input{min-width:200px}
+.filter-bar select option{background:var(--surf2)}
+.ml-auto{margin-left:auto}
+
+/* ── EMPTY ────────────────────────────────────────────── */
+.empty{text-align:center;padding:56px 24px;color:var(--text2)}
+.empty-icon{font-size:48px;opacity:.35;margin-bottom:14px;display:block}
+.empty h3{font-size:15px;font-weight:700;color:var(--text);margin-bottom:5px}
+
+/* ── TOAST ────────────────────────────────────────────── */
+.toast-stack{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:9000;pointer-events:none}
+.toast{
+  background:var(--surf);border:1px solid var(--brd2);border-radius:10px;
+  padding:11px 16px;font-size:13px;min-width:240px;max-width:360px;
+  display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,.6);
+  animation:tIn .22s ease;pointer-events:all;
+}
+.toast.out{animation:tOut .22s ease forwards}
+@keyframes tIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}
+@keyframes tOut{to{opacity:0;transform:translateX(16px)}}
+.toast.success{border-left:3px solid var(--green)}
+.toast.error{border-left:3px solid var(--red)}
+.toast.info{border-left:3px solid var(--teal2)}
+.toast.warn{border-left:3px solid #f59e0b}
+
+/* ── MISC ─────────────────────────────────────────────── */
+.sep{border:none;border-top:1px solid var(--brd);margin:14px 0}
+.mono{font-family:var(--mono)}
+.det-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.det-item{background:var(--surf2);border-radius:8px;padding:12px}
+.det-lbl{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text2);margin-bottom:3px}
+.det-val{font-size:13px;font-weight:600}
+@media(max-width:900px){#app{grid-template-columns:1fr}.sidebar{display:none}.stats-row{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}}
+
+/* ── LIVE ACTIVITY FEED ─────────────────────────────── */
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;animation:livePulse 1.5s ease-in-out infinite}
+@keyframes livePulse{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.5)}50%{box-shadow:0 0 0 5px rgba(16,185,129,0)}}
+.feed-item{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:8px;background:var(--surf2);border:1px solid var(--brd);animation:feedSlide .35s ease;font-size:12px;line-height:1.4}
+@keyframes feedSlide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.feed-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.feed-body{flex:1;min-width:0}
+.feed-title{font-weight:600;color:var(--text1)}
+.feed-meta{color:var(--text2);font-size:11px;margin-top:2px}
+.feed-time{font-size:10px;color:var(--text2);white-space:nowrap;flex-shrink:0;margin-top:2px}
+.feed-empty{text-align:center;padding:28px;color:var(--text2);font-size:13px}
+
+</style>
+</head>
+<body>
+
+<!-- ═══ AUTH ═══════════════════════════════════════════════ -->
+<div id="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo-row">
+      <div class="auth-logo">⚙️</div>
+      <div class="auth-logo-text"><h1>Blue Carbon MRV</h1><span>Admin &amp; Verifier Portal</span></div>
+    </div>
+
+    <!-- Login Panel -->
+    <div id="auth-login-panel">
+      <div class="auth-title">Admin Sign In</div>
+      <p class="auth-sub">Only admins and verifiers can access this dashboard. Field workers use the mobile app.</p>
+      <div id="auth-error" class="auth-error"></div>
+      <div class="field"><label>Email</label><input type="email" id="l-email" placeholder="admin@nccr.gov.in" autocomplete="email"/></div>
+      <div class="field"><label>Password</label><input type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+      <button class="btn btn-gold btn-full" onclick="doLogin()" style="margin-top:6px">Access Dashboard →</button>
+      <div class="auth-register-link">First time? <a onclick="showRegister()">Create admin account</a></div>
+    </div>
+
+    <!-- Register Panel -->
+    <div id="auth-register-panel">
+      <div class="auth-title">Create Admin Account</div>
+      <p class="auth-sub">Register as an admin or verifier to manage projects.</p>
+      <div id="reg-error" class="auth-error"></div>
+      <div class="field-grid" style="margin-bottom:0">
+        <div class="field full"><label>Full Name</label><input id="r-name" placeholder="Dr. Rajesh Kumar"/></div>
+        <div class="field"><label>Email</label><input type="email" id="r-email" placeholder="admin@nccr.gov.in"/></div>
+        <div class="field"><label>Password (min 8 chars)</label><input type="password" id="r-pass" placeholder="••••••••"/></div>
+        <div class="field"><label>Role</label>
+          <select id="r-role">
+            <option value="admin">Admin (NCCR)</option>
+            <option value="verifier">Verifier</option>
+          </select>
+        </div>
+        <div class="field full"><label>Organisation</label><input id="r-org" placeholder="NCCR / Forest Department"/></div>
+        <div class="field full"><label>Admin Key (required)</label><input type="password" id="r-adminkey" placeholder="Contact NCCR for admin key"/></div>
+      </div>
+      <button class="btn btn-gold btn-full" onclick="doAdminRegister()" style="margin-top:14px">Create Account →</button>
+      <div class="auth-register-link"><a onclick="showLogin()">← Back to login</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ APP ════════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="sidebar-logo">⚙️</div>
+      <h1>Blue Carbon MRV</h1>
+      <span>Admin Portal</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Overview</div>
+      <div class="nav-item active" onclick="gotoPage('dashboard',this)"><span class="nav-icon">📊</span>Dashboard</div>
+      <div class="nav-section">Review Queue</div>
+      <div class="nav-item" id="nav-uploads" onclick="gotoPage('uploads',this)"><span class="nav-icon">📸</span>Upload Queue<span class="nav-badge" id="nb-uploads">0</span></div>
+      <div class="nav-item" onclick="gotoPage('projects',this)"><span class="nav-icon">🌿</span>All Projects<span class="nav-badge" id="nb-pending" style="background:#f59e0b;color:#000">0</span></div>
+      <div class="nav-section">Carbon</div>
+      <div class="nav-item" onclick="gotoPage('credits',this)"><span class="nav-icon">🪙</span>Carbon Credits<span class="nav-badge gold" id="nb-minted">0</span></div>
+      <div class="nav-item" onclick="gotoPage('blockchain',this)"><span class="nav-icon">⛓️</span>Blockchain</div>
+      <div class="nav-section">System</div>
+      <div class="nav-item" onclick="gotoPage('contract',this)"><span class="nav-icon">📜</span>Smart Contract</div>
+      <div class="nav-item" onclick="gotoPage('map',this)"><span class="nav-icon">🗺️</span>Map View</div>
+      <div class="nav-item" id="nav-users" onclick="gotoPage('users',this)"><span class="nav-icon">👥</span>Users</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-pill">
+        <div class="user-ava" id="sb-ava">A</div>
+        <div style="flex:1;min-width:0">
+          <div class="user-name" id="sb-name">Admin</div>
+          <div class="user-role-tag" id="sb-role">Admin</div>
+        </div>
+        <button class="btn btn-ghost btn-xs" onclick="doLogout()">Exit</button>
+      </div>
+      <div class="chain-status">
+        <div class="chain-dot"></div>
+        <span>Block <span id="chain-num" class="mono">—</span></span>
+        <span style="margin-left:auto;font-size:10px" id="chain-time"></span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title" id="topbar-title">Dashboard</div>
+        <div class="page-sub" id="topbar-sub">Platform overview</div>
+      </div>
+      <div class="topbar-right">
+        <div class="block-chip">⛓️ <span id="block-display">—</span></div>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="stats-row" id="stats-row">
+          <div class="stat-card"><div class="s-icon">🌿</div><div class="s-lbl">Total Projects</div><div class="s-val" id="s-total">—</div><div class="s-sub">Registered sites</div></div>
+          <div class="stat-card"><div class="s-icon">⏳</div><div class="s-lbl">Pending Review</div><div class="s-val red" id="s-pending">—</div><div class="s-sub">Needs action</div></div>
+          <div class="stat-card"><div class="s-icon">📸</div><div class="s-lbl">Unreviewed Uploads</div><div class="s-val" id="s-uploads" style="color:var(--gold)">—</div><div class="s-sub">Images in queue</div></div>
+          <div class="stat-card"><div class="s-icon">🪙</div><div class="s-lbl">CO₂ Minted (t)</div><div class="s-val teal" id="s-minted">—</div><div class="s-sub">BCT tokens issued</div></div>
+        </div>
+        <div class="g2">
+          <div class="card">
+            <div class="card-head"><div><div class="card-title">Credits by Ecosystem</div><div class="card-sub">Minted tonnes CO₂e</div></div></div>
+            <canvas id="chart-eco" height="160"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><div class="card-title">Project Pipeline</div><div class="card-sub">Status overview</div></div></div>
+            <canvas id="chart-pipe" height="160"></canvas>
+          </div>
+        </div>
+        <div class="g2" style="margin-bottom:0">
+          <div class="card" style="margin-bottom:0">
+            <div class="card-head"><div class="card-title">Recent Upload Queue</div><button class="btn btn-ghost btn-sm" onclick="gotoPage('uploads',null)">View All →</button></div>
+            <div id="dash-recent-uploads"></div>
+          </div>
+          <div class="card" id="live-feed-card" style="margin-bottom:0">
+            <div class="card-head">
+              <div><div class="card-title">⚡ Live Activity Feed</div><div class="card-sub">Real-time platform events</div></div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="live-dot"></span>
+                <span style="font-size:11px;color:var(--green);font-weight:600">LIVE</span>
+              </div>
+            </div>
+            <div id="live-feed-list" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPLOADS REVIEW QUEUE -->
+      <div class="page" id="page-uploads">
+        <div class="filter-bar">
+          <select id="upl-filter" onchange="renderUploads()">
+            <option value="pending_review">Pending Review</option>
+            <option value="">All Uploads</option>
+          </select>
+          <div class="ml-auto" style="font-size:13px;color:var(--text2)" id="upload-count"></div>
+        </div>
+        <div id="uploads-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px"></div>
+      </div>
+
+      <!-- PROJECTS -->
+      <div class="page" id="page-projects">
+        <div class="filter-bar">
+          <input type="text" id="proj-search" placeholder="🔍  Search projects…" oninput="renderProjects()"/>
+          <select id="proj-status-filter" onchange="renderProjects()">
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="verified">Verified</option>
+            <option value="minted">Minted</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+        <div class="card"><div class="tbl-wrap" id="proj-tbl"></div></div>
+      </div>
+
+      <!-- CARBON CREDITS -->
+      <div class="page" id="page-credits">
+        <div class="stats-row" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat-card"><div class="s-lbl">Total BCT Minted</div><div class="s-val teal" id="c-total">—</div><div class="s-sub">Blue Carbon Tokens</div></div>
+          <div class="stat-card"><div class="s-lbl">Projects Tokenised</div><div class="s-val" id="c-count">—</div><div class="s-sub">Minted projects</div></div>
+          <div class="stat-card"><div class="s-lbl">Blockchain Txns</div><div class="s-val green" id="c-txns">—</div><div class="s-sub">On-chain records</div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><div class="card-title">Minted Carbon Credits (BCT)</div><div class="card-sub">ERC-20 tokens on blockchain</div></div></div>
+          <div class="tbl-wrap" id="credits-tbl"></div>
+        </div>
+      </div>
+
+      <!-- BLOCKCHAIN -->
+      <div class="page" id="page-blockchain">
+        <div class="g2" style="margin-bottom:0">
+          <div class="card">
+            <div class="card-head"><div class="card-title">Network</div></div>
+            <div id="chain-info-rows"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">Contract Stats</div></div>
+            <div id="contract-stats-rows"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><div class="card-title">All Transactions</div><div class="card-sub">Real-time event feed</div></div><button class="btn btn-ghost btn-sm" onclick="renderBlockchain()">⟳ Refresh</button></div>
+          <div id="tx-feed"></div>
+        </div>
+      </div>
+
+      <!-- SMART CONTRACT -->
+      <div class="page" id="page-contract">
+        <div class="deploy-card" id="deploy-status-card">
+          <div class="deploy-status">
+            <span id="deploy-status-icon">⚙️</span>
+            <span id="deploy-status-text">Smart Contract Status</span>
+          </div>
+          <div id="deploy-addr-display"></div>
+          <div id="deploy-actions" style="margin-top:14px"></div>
+        </div>
+        <div class="g2">
+          <div class="card">
+            <div class="card-head"><div class="card-title">Contract Functions</div></div>
+            <div id="contract-functions"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">ABI Summary</div></div>
+            <div id="abi-summary"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAP -->
+      <div class="page" id="page-map">
+        <div class="card">
+          <div class="card-head"><div><div class="card-title">Project Locations</div><div class="card-sub" id="map-sub">Loading…</div></div></div>
+          <div id="proj-map"></div>
+        </div>
+      </div>
+
+      <!-- USERS -->
+      <div class="page" id="page-users">
+        <div class="card">
+          <div class="card-head">
+            <div><div class="card-title">All Users</div></div>
+            <button class="btn btn-ghost btn-sm" onclick="renderUsers()">⟳ Refresh</button>
+          </div>
+          <div class="tbl-wrap" id="users-tbl"></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Project Detail Modal -->
+<div class="modal-bg" id="modal-detail">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><div class="modal-title" id="det-title">Project</div><div style="font-size:12px;color:var(--text2);margin-top:2px" id="det-sub"></div></div>
+      <button class="modal-x" onclick="closeModal('modal-detail')">×</button>
+    </div>
+    <div id="det-body"></div>
+    <div class="modal-footer" id="det-footer"></div>
+  </div>
+</div>
+
+<!-- Mint Modal -->
+<div class="modal-bg" id="modal-mint">
+  <div class="modal">
+    <div class="modal-head">
+      <div><div class="modal-title">🪙 Mint Carbon Credits</div><div style="font-size:12px;color:var(--text2);margin-top:2px">Creates an immutable on-chain transaction</div></div>
+      <button class="modal-x" onclick="closeModal('modal-mint')">×</button>
+    </div>
+    <div id="mint-body"></div>
+    <div class="modal-footer" id="mint-footer"></div>
+  </div>
+</div>
+
+<!-- Image Lightbox -->
+<div id="lightbox" onclick="closeLightbox()"><img id="lb-img" alt=""/></div>
+
+<!-- Toast -->
+<div class="toast-stack" id="toasts"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  SHARED DB (same keys as mobile app)
+// ═══════════════════════════════════════════════════════
+const STORE_KEY='bcmrv2_';
+const DB={
+  get(k){try{return JSON.parse(localStorage.getItem(STORE_KEY+k))||null}catch{return null}},
+  set(k,v){localStorage.setItem(STORE_KEY+k,JSON.stringify(v))},
+  users(){     return this.get('users')||[]},
+  projects(){  return this.get('projects')||[]},
+  images(){    return this.get('images')||[]},
+  credits(){   return this.get('credits')||[]},
+  blockchain(){return this.get('blockchain')||{blocks:[],txCount:0,blockNumber:1,contractAddress:null}},
+  saveUsers(v){    this.set('users',v)},
+  saveProjects(v){ this.set('projects',v)},
+  saveImages(v){   this.set('images',v)},
+  saveCredits(v){  this.set('credits',v)},
+  saveBlockchain(v){this.set('blockchain',v)},
+};
+
+const ADMIN_KEY='NCCR2024ADMIN'; // admin registration passphrase
+
+// ═══════════════════════════════════════════════════════
+//  CRYPTO
+// ═══════════════════════════════════════════════════════
+async function sha256(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function genTxHash(){
+  return '0x'+Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function genAddress(){
+  return '0x'+Array.from(crypto.getRandomValues(new Uint8Array(20))).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function genIPFS(){
+  const c='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  return 'Qm'+Array.from({length:44},()=>c[Math.floor(Math.random()*c.length)]).join('');
+}
+
+const RATES={MANGROVE:6,SEAGRASS:1.38,SALT_MARSH:2.18};
+const STOCKS={MANGROVE:100,SEAGRASS:70,SALT_MARSH:50};
+const MATS={MANGROVE:20,SEAGRASS:10,SALT_MARSH:15};
+function calcCarbon(area,eco,yrs){
+  const r=RATES[eco]||6,s=STOCKS[eco]||100,m=MATS[eco]||20;
+  return Math.round((r*area*yrs+Math.min(yrs/m,1)*s*area*3.67)*0.8*100)/100;
+}
+
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let currentUser=null;
+let leafMap=null;
+let ecoChart=null,pipeChart=null;
+
+// ═══════════════════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════════════════
+function showRegister(){
+  document.getElementById('auth-login-panel').style.display='none';
+  document.getElementById('auth-register-panel').style.display='block';
+}
+function showLogin(){
+  document.getElementById('auth-register-panel').style.display='none';
+  document.getElementById('auth-login-panel').style.display='block';
+  document.getElementById('auth-error').style.display='none';
+}
+
+async function doLogin(){
+  const email=document.getElementById('l-email').value.trim().toLowerCase();
+  const pass=document.getElementById('l-pass').value;
+  const errEl=document.getElementById('auth-error');
+  errEl.style.display='none';
+  if(!email||!pass){errEl.textContent='Enter email and password';errEl.style.display='block';return;}
+  const hash=await sha256(pass);
+  const users=DB.users();
+  const u=users.find(x=>x.email===email&&x.passHash===hash);
+  if(!u){errEl.textContent='Invalid email or password';errEl.style.display='block';return;}
+  if(!['admin','verifier'].includes(u.role)){
+    errEl.textContent='This portal is for admin and verifiers only. Use the mobile app.';
+    errEl.style.display='block';return;
+  }
+  currentUser=u;
+  DB.set('session',{userId:u.id});
+  launchApp();
+}
+
+async function doAdminRegister(){
+  const name=document.getElementById('r-name').value.trim();
+  const email=document.getElementById('r-email').value.trim().toLowerCase();
+  const pass=document.getElementById('r-pass').value;
+  const role=document.getElementById('r-role').value;
+  const org=document.getElementById('r-org').value.trim();
+  const adminKey=document.getElementById('r-adminkey').value;
+  const errEl=document.getElementById('reg-error');
+  errEl.style.display='none';
+
+  if(!name||!email||!pass||!adminKey){errEl.textContent='All fields required';errEl.style.display='block';return;}
+  if(pass.length<8){errEl.textContent='Password must be at least 8 characters';errEl.style.display='block';return;}
+  if(adminKey!==ADMIN_KEY){errEl.textContent='Invalid admin key. Contact NCCR system administrator.';errEl.style.display='block';return;}
+
+  const users=DB.users();
+  if(users.find(u=>u.email===email)){errEl.textContent='Email already registered';errEl.style.display='block';return;}
+  const hash=await sha256(pass);
+  const wallet=genAddress();
+  const u={id:Date.now(),name,email,passHash:hash,role,organisation:org,wallet,bctBalance:0,created:new Date().toISOString()};
+  users.push(u);
+  DB.saveUsers(users);
+  currentUser=u;
+  DB.set('session',{userId:u.id});
+  launchApp();
+  toast(`Welcome, ${name}! Admin account created.`,'success');
+}
+
+function launchApp(){
+  document.getElementById('auth-wrap').style.display='none';
+  document.getElementById('app').style.display='grid';
+  document.getElementById('sb-ava').textContent=currentUser.name[0].toUpperCase();
+  document.getElementById('sb-name').textContent=currentUser.name;
+  document.getElementById('sb-role').textContent=currentUser.role.charAt(0).toUpperCase()+currentUser.role.slice(1);
+  tickClock();
+  setInterval(tickClock,1000);
+  setInterval(()=>{
+    updateNavBadges();
+    if(document.getElementById('page-dashboard').classList.contains('active')) loadDashboard();
+  },5000);
+  // Bug fix: restore the last active page instead of always defaulting to dashboard
+  const lastPage=DB.get('lastPage')||'dashboard';
+  const navEl=document.querySelector(`.nav-item[onclick*="'${lastPage}'"]`);
+  gotoPage(lastPage, navEl);
+}
+
+function doLogout(){
+  currentUser=null;
+  DB.set('session',null);
+  localStorage.removeItem(STORE_KEY+'session');
+  document.getElementById('app').style.display='none';
+  document.getElementById('auth-wrap').style.display='flex';
+  document.getElementById('l-email').value='';
+  document.getElementById('l-pass').value='';
+}
+
+function tickClock(){
+  const now=new Date();
+  document.getElementById('chain-time').textContent=now.toLocaleTimeString();
+  const bn=DB.blockchain().blockNumber;
+  document.getElementById('chain-num').textContent=bn;
+  document.getElementById('block-display').textContent=`Block #${bn}`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════
+const PAGE_INFO={
+  dashboard:{title:'Dashboard',sub:'Platform overview & analytics'},
+  uploads:{title:'Upload Review Queue',sub:'Photos submitted by field workers'},
+  projects:{title:'All Projects',sub:'Manage restoration projects'},
+  credits:{title:'Carbon Credits',sub:'BCT tokens minted on blockchain'},
+  blockchain:{title:'Blockchain Explorer',sub:'All on-chain transactions'},
+  contract:{title:'Smart Contract',sub:'BlueCarbonToken deployment & status'},
+  map:{title:'Map View',sub:'Geographic distribution of projects'},
+  users:{title:'Users',sub:'All registered accounts'},
+};
+
+function gotoPage(id,navEl){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(navEl) navEl.classList.add('active');
+  // Bug fix: persist active page so reload restores it
+  DB.set('lastPage',id);
+  const info=PAGE_INFO[id]||{title:id,sub:''};
+  document.getElementById('topbar-title').textContent=info.title;
+  document.getElementById('topbar-sub').textContent=info.sub;
+  const handlers={
+    dashboard:loadDashboard, uploads:renderUploads, projects:renderProjects,
+    credits:renderCredits, blockchain:renderBlockchain,
+    contract:renderContract, map:renderMap, users:renderUsers
+  };
+  if(handlers[id]) handlers[id]();
+}
+
+function updateNavBadges(){
+  const pending=DB.images().filter(i=>i.status==='pending_review').length;
+  const pendProj=DB.projects().filter(p=>p.status==='pending').length;
+  const minted=DB.credits().length;
+  document.getElementById('nb-uploads').textContent=pending;
+  document.getElementById('nb-pending').textContent=pendProj;
+  document.getElementById('nb-minted').textContent=minted;
+}
+
+// ═══════════════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════════════
+function loadDashboard(){
+  const projects=DB.projects();
+  const images=DB.images();
+  const credits=DB.credits();
+  const pending=projects.filter(p=>p.status==='pending').length;
+  const unreviewed=images.filter(i=>i.status==='pending_review').length;
+  const totalMinted=credits.reduce((s,c)=>s+c.amount_tonnes,0);
+
+  document.getElementById('s-total').textContent=projects.length;
+  document.getElementById('s-pending').textContent=pending;
+  document.getElementById('s-uploads').textContent=unreviewed;
+  document.getElementById('s-minted').textContent=totalMinted.toLocaleString();
+  updateNavBadges();
+  renderLiveFeed();
+
+  // Charts
+  const ecoData={MANGROVE:0,SEAGRASS:0,SALT_MARSH:0};
+  credits.forEach(c=>{
+    const p=projects.find(x=>x.id===c.project_id);
+    if(p) ecoData[p.ecosystem_type]=(ecoData[p.ecosystem_type]||0)+c.amount_tonnes;
+  });
+  if(ecoChart) ecoChart.destroy();
+  ecoChart=new Chart(document.getElementById('chart-eco').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels:['Mangrove','Seagrass','Salt Marsh'],
+      datasets:[{data:[ecoData.MANGROVE,ecoData.SEAGRASS,ecoData.SALT_MARSH],
+      backgroundColor:['rgba(240,180,41,.65)','rgba(20,184,166,.65)','rgba(59,130,246,.65)'],borderRadius:6,borderSkipped:false}]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(26,47,82,.5)'},ticks:{color:'#5a7aaa',font:{family:'DM Sans',size:11}}},
+              y:{grid:{color:'rgba(26,47,82,.5)'},ticks:{color:'#5a7aaa',font:{family:'DM Sans',size:11}}}}}
+  });
+
+  const minted=projects.filter(p=>p.status==='minted').length;
+  const verified=projects.filter(p=>p.status==='verified').length;
+  const rejected=projects.filter(p=>p.status==='rejected').length;
+  if(pipeChart) pipeChart.destroy();
+  pipeChart=new Chart(document.getElementById('chart-pipe').getContext('2d'),{
+    type:'doughnut',
+    data:{
+      labels:['Pending','Verified','Minted','Rejected'],
+      datasets:[{data:[pending,verified,minted,rejected],
+      backgroundColor:['rgba(245,158,11,.8)','rgba(34,197,94,.8)','rgba(20,184,166,.8)','rgba(244,63,94,.8)'],
+      borderWidth:0,hoverOffset:8}]
+    },
+    options:{responsive:true,cutout:'66%',plugins:{legend:{position:'bottom',labels:{color:'#5a7aaa',font:{size:11},padding:10}}}}
+  });
+
+  // Recent uploads
+  const recentUploads=images.filter(i=>i.status==='pending_review').slice(-4).reverse();
+  const el=document.getElementById('dash-recent-uploads');
+  if(!recentUploads.length){
+    el.innerHTML=`<div class="empty"><span class="empty-icon">📸</span><h3>No pending uploads</h3></div>`;
+  } else {
+    el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
+      ${recentUploads.map(i=>uploadMiniCard(i)).join('')}
+    </div>`;
+  }
+}
+
+function uploadMiniCard(img){
+  const p=DB.projects().find(x=>x.id===img.project_id);
+  return `<div class="upload-review-card" onclick="showUploadDetail('${img.id}')">
+    <div class="urc-photo">${img.imageB64?
+      `<img src="${img.imageB64}" alt="upload" onclick="event.stopPropagation();openLightbox('${img.imageB64}')"/>`:
+      `<span style="font-size:48px">${img.image_type==='drone'?'🚁':img.image_type==='field'?'📷':'🛰️'}</span>`}
+    </div>
+    <div class="urc-body">
+      <div class="urc-title">${img.filename||'Image'}</div>
+      <div class="urc-meta">${p?.name||'Unknown Project'}<br/>${img.owner_name} · ${img.image_type} · ${new Date(img.created).toLocaleDateString()}</div>
+      <div class="urc-ipfs">${img.ipfs_hash||'—'}</div>
+      <div class="urc-actions">
+        <button class="btn btn-green btn-xs" onclick="event.stopPropagation();approveUpload('${img.id}')">✓ Approve & Verify</button>
+        <button class="btn btn-red btn-xs" onclick="event.stopPropagation();rejectUpload('${img.id}')">✗ Reject</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  UPLOADS PAGE
+// ═══════════════════════════════════════════════════════
+function renderUploads(){
+  const filter=document.getElementById('upl-filter')?.value||'pending_review';
+  let imgs=DB.images();
+  if(filter) imgs=imgs.filter(i=>i.status===filter);
+  imgs=imgs.slice().reverse();
+  document.getElementById('upload-count').textContent=`${imgs.length} upload${imgs.length!==1?'s':''}`;
+  const grid=document.getElementById('uploads-grid');
+  if(!imgs.length){
+    grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><span class="empty-icon">📸</span><h3>No uploads in this queue</h3></div>`;
+    return;
+  }
+  grid.innerHTML=imgs.map(i=>uploadFullCard(i)).join('');
+}
+
+function uploadFullCard(img){
+  const p=DB.projects().find(x=>x.id===img.project_id);
+  const reviewed=img.status!=='pending_review';
+  return `<div class="upload-review-card" id="urc-${img.id}">
+    <div class="urc-photo">${img.imageB64?
+      `<img src="${img.imageB64}" alt="upload" onclick="openLightbox('${img.imageB64}')"/>`:
+      `<div style="height:200px;display:flex;align-items:center;justify-content:center;font-size:56px;background:var(--surf2)">${img.image_type==='drone'?'🚁':img.image_type==='field'?'📷':'🛰️'}</div>`}
+    </div>
+    <div class="urc-body">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
+        <div class="urc-title">${img.filename||'Unnamed'}</div>
+        <span class="badge ${img.status==='approved'?'b-verified':img.status==='rejected'?'b-rejected':'b-pending'}">
+          <div class="badge-dot"></div>${img.status==='pending_review'?'Pending':img.status}
+        </span>
+      </div>
+      <div class="urc-meta">
+        <strong>${p?.name||'Unknown Project'}</strong><br/>
+        Submitted by: ${img.owner_name}<br/>
+        Type: ${img.image_type} · ${new Date(img.created).toLocaleString()}<br/>
+        ${img.latitude?`GPS: ${img.latitude}, ${img.longitude}`:'GPS: Not recorded'}
+      </div>
+      <div class="urc-ipfs">${img.ipfs_hash||'No IPFS hash'}</div>
+      ${!reviewed?`<div class="urc-actions">
+        <button class="btn btn-green btn-xs" onclick="approveUpload('${img.id}')">✓ Approve &amp; Verify Project</button>
+        <button class="btn btn-red btn-xs" onclick="rejectUpload('${img.id}')">✗ Reject</button>
+      </div>`:`<div style="font-size:12px;color:var(--text2)">Reviewed by admin</div>`}
+    </div>
+  </div>`;
+}
+
+async function approveUpload(imgId){
+  const images=DB.images();
+  const img=images.find(i=>String(i.id)===String(imgId));
+  if(!img) return;
+  img.status='approved';
+  img.reviewed_by=currentUser.id;
+  img.reviewed_at=new Date().toISOString();
+  DB.saveImages(images);
+
+  // Verify the associated project
+  const projects=DB.projects();
+  const p=projects.find(x=>x.id===img.project_id);
+  if(p&&p.status==='pending'){
+    p.status='verified';
+    p.verified_by=currentUser.id;
+    p.verified_at=new Date().toISOString();
+    DB.saveProjects(projects);
+
+    // Mine verification tx
+    await mineBlock('ProjectVerified',`Project #${p.id} "${p.name}" verified`,currentUser.wallet,p.owner_id);
+    toast(`✅ Upload approved & project "${p.name}" verified`,'success');
+  } else {
+    toast(`✅ Upload approved`,'success');
+  }
+
+  renderUploads();
+  loadDashboard();
+}
+
+function rejectUpload(imgId){
+  const images=DB.images();
+  const img=images.find(i=>String(i.id)===String(imgId));
+  if(!img) return;
+  img.status='rejected';
+  img.reviewed_by=currentUser.id;
+  img.reviewed_at=new Date().toISOString();
+  DB.saveImages(images);
+
+  // Reject project too
+  const projects=DB.projects();
+  const p=projects.find(x=>x.id===img.project_id);
+  if(p&&p.status==='pending'){
+    p.status='rejected';
+    DB.saveProjects(projects);
+    toast(`Upload rejected — project "${p?.name}" marked rejected`,'warn');
+  } else {
+    toast('Upload rejected','warn');
+  }
+  renderUploads();
+  loadDashboard();
+}
+
+function showUploadDetail(imgId){
+  gotoPage('uploads',document.querySelector('[onclick*="uploads"]'));
+  document.getElementById('upl-filter').value='';
+  renderUploads();
+}
+
+// ═══════════════════════════════════════════════════════
+//  PROJECTS
+// ═══════════════════════════════════════════════════════
+function renderProjects(){
+  let projects=DB.projects();
+  const search=(document.getElementById('proj-search')?.value||'').toLowerCase();
+  const status=document.getElementById('proj-status-filter')?.value||'';
+  if(search) projects=projects.filter(p=>p.name.toLowerCase().includes(search)||(p.location_text||'').toLowerCase().includes(search));
+  if(status) projects=projects.filter(p=>p.status===status);
+  const el=document.getElementById('proj-tbl');
+  if(!projects.length){el.innerHTML=`<div class="empty"><span class="empty-icon">🌿</span><h3>No projects</h3></div>`;return;}
+  el.innerHTML=`<table>
+    <thead><tr><th>#</th><th>Name</th><th>Owner</th><th>Location</th><th>Ecosystem</th><th>Area (ha)</th><th>CO₂ (t)</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>${projects.map(p=>`<tr onclick="showProjectDetail(${p.id})">
+      <td class="mono" style="color:var(--text2)">#${p.id}</td>
+      <td style="font-weight:600">${p.name}</td>
+      <td style="color:var(--text2)">${p.owner_name||'—'}</td>
+      <td style="color:var(--text2)">${p.location_text||'—'}</td>
+      <td>${ecoIcon(p.ecosystem_type)} ${p.ecosystem_type.replace('_',' ')}</td>
+      <td class="mono">${p.area_hectares}</td>
+      <td class="mono" style="color:var(--gold)">${p.carbon_tonnes?.toLocaleString()||'—'}</td>
+      <td><span class="badge b-${p.status}"><div class="badge-dot"></div>${p.status}</span></td>
+      <td onclick="event.stopPropagation()">
+        ${p.status==='pending'?`<button class="btn btn-green btn-xs" onclick="quickApprove(${p.id})">✓ Approve</button> <button class="btn btn-red btn-xs" onclick="quickReject(${p.id})">✗ Reject</button>`:''}
+        ${p.status==='verified'?`<button class="btn btn-teal btn-xs" onclick="openMintModal(${p.id})">🪙 Mint</button>`:''}
+      </td>
+    </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+function ecoIcon(t){return t==='MANGROVE'?'🌳':t==='SEAGRASS'?'🌿':'🏝️';}
+
+function showProjectDetail(id){
+  const p=DB.projects().find(x=>x.id===id);
+  if(!p) return;
+  const imgs=DB.images().filter(i=>i.project_id===id);
+  const credit=DB.credits().find(c=>c.project_id===id);
+
+  document.getElementById('det-title').textContent=p.name;
+  document.getElementById('det-sub').textContent=`${p.location_text||''} · Registered ${new Date(p.created).toLocaleDateString()}`;
+
+  let body=`<div class="det-grid">
+    <div class="det-item"><div class="det-lbl">Ecosystem</div><div class="det-val">${ecoIcon(p.ecosystem_type)} ${p.ecosystem_type.replace('_',' ')}</div></div>
+    <div class="det-item"><div class="det-lbl">Status</div><div class="det-val"><span class="badge b-${p.status}">${p.status}</span></div></div>
+    <div class="det-item"><div class="det-lbl">Area</div><div class="det-val">${p.area_hectares} ha</div></div>
+    <div class="det-item"><div class="det-lbl">Growth Years</div><div class="det-val">${p.growth_years||'—'}</div></div>
+    <div class="det-item"><div class="det-lbl">Carbon (tCO₂e)</div><div class="det-val" style="color:var(--gold)">${p.carbon_tonnes?.toLocaleString()||'—'}</div></div>
+    <div class="det-item"><div class="det-lbl">Owner</div><div class="det-val" style="font-size:12px">${p.owner_name||'—'}</div></div>
+  </div>`;
+
+  if(imgs.length){
+    body+=`<div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:10px">Uploaded Images (${imgs.length})</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">
+        ${imgs.map(i=>i.imageB64?
+          `<div><img src="${i.imageB64}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid var(--brd);cursor:pointer" onclick="openLightbox('${i.imageB64}')"/><div style="font-size:10px;color:var(--text2);margin-top:3px;text-align:center">${i.image_type} · <span class="badge b-${i.status==='approved'?'verified':i.status==='rejected'?'rejected':'pending'}" style="font-size:9px">${i.status==='pending_review'?'pending':i.status}</span></div></div>`:
+          `<div style="aspect-ratio:1;background:var(--surf2);border-radius:8px;border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;font-size:32px">${i.image_type==='drone'?'🚁':'📷'}</div>`
+        ).join('')}
+      </div>
+    </div>`;
+  }
+
+  if(p.ipfs_hash){
+    body+=`<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:5px">IPFS Hash (Latest)</div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--teal2);background:var(--surf2);padding:10px;border-radius:8px;word-break:break-all;border:1px solid var(--brd)">${p.ipfs_hash}</div></div>`;
+  }
+
+  if(credit&&p.tx_hash){
+    body+=`<div class="tx-panel">
+      <div class="tx-hdr"><div class="tx-icon-box">🪙</div><div><div class="tx-htitle">Carbon Credits Minted</div><div class="tx-hsub">On-chain record</div></div></div>
+      <div class="tx-row"><span class="tx-lbl">Tx Hash</span><span class="tx-val" style="color:var(--teal2);font-size:11px">${p.tx_hash.slice(0,30)}…</span></div>
+      <div class="tx-row"><span class="tx-lbl">BCT Amount</span><span class="tx-val" style="color:var(--gold)">${credit.amount_tonnes.toLocaleString()} BCT</span></div>
+      <div class="tx-row"><span class="tx-lbl">Block</span><span class="tx-val">#${credit.block||'—'}</span></div>
+    </div>`;
+  }
+
+  const footer=document.getElementById('det-footer');
+  footer.innerHTML='';
+  if(p.status==='pending'){
+    footer.innerHTML=`<button class="btn btn-red btn-sm" onclick="quickReject(${p.id});closeModal('modal-detail')">✗ Reject</button>
+      <button class="btn btn-green btn-sm" onclick="quickApprove(${p.id});closeModal('modal-detail')">✓ Approve Project</button>`;
+  } else if(p.status==='verified'){
+    footer.innerHTML=`<button class="btn btn-teal btn-sm" onclick="closeModal('modal-detail');openMintModal(${p.id})">🪙 Mint Carbon Credits</button>`;
+  }
+  document.getElementById('det-body').innerHTML=body;
+  openModal('modal-detail');
+}
+
+async function quickApprove(id){
+  const projects=DB.projects();
+  const p=projects.find(x=>x.id===id);
+  if(!p) return;
+  p.status='verified';p.verified_by=currentUser.id;p.verified_at=new Date().toISOString();
+  DB.saveProjects(projects);
+  await mineBlock('ProjectVerified',`Project #${id} "${p.name}" verified`,currentUser.wallet,p.owner_id);
+  toast(`✅ "${p.name}" verified`,'success');
+  renderProjects();loadDashboard();
+}
+
+function quickReject(id){
+  const projects=DB.projects();
+  const p=projects.find(x=>x.id===id);
+  if(!p) return;
+  p.status='rejected';DB.saveProjects(projects);
+  toast(`"${p.name}" rejected`,'warn');
+  renderProjects();loadDashboard();
+}
+
+// ═══════════════════════════════════════════════════════
+//  MINT MODAL
+// ═══════════════════════════════════════════════════════
+function openMintModal(id){
+  const p=DB.projects().find(x=>x.id===id);
+  if(!p) return;
+  const chain=DB.blockchain();
+  const contractOk=!!chain.contractAddress;
+
+  document.getElementById('mint-body').innerHTML=`
+    <div style="background:var(--surf2);border-radius:var(--r);padding:14px;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:3px">${p.name}</div>
+      <div style="font-size:12px;color:var(--text2)">${p.location_text} · ${p.ecosystem_type.replace('_',' ')}</div>
+    </div>
+    <div class="det-grid" style="margin-bottom:14px">
+      <div class="det-item"><div class="det-lbl">Area</div><div class="det-val">${p.area_hectares} ha</div></div>
+      <div class="det-item"><div class="det-lbl">Growth</div><div class="det-val">${p.growth_years} yrs</div></div>
+      <div class="det-item"><div class="det-lbl">To Mint</div><div class="det-val" style="color:var(--gold)">${p.carbon_tonnes?.toLocaleString()} BCT</div></div>
+      <div class="det-item"><div class="det-lbl">Recipient</div><div class="det-val" style="font-size:11px">${p.owner_name}</div></div>
+    </div>
+    ${!contractOk?`<div style="background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);border-radius:8px;padding:12px;font-size:13px;color:var(--red);margin-bottom:14px">
+      ⚠️ Smart contract not deployed. <a onclick="closeModal('modal-mint');gotoPage('contract',null)" style="color:var(--gold);cursor:pointer">Deploy it first →</a>
+    </div>`:`<div style="background:rgba(240,180,41,.06);border:1px solid rgba(240,180,41,.15);border-radius:8px;padding:12px;font-size:12px;color:var(--text2);margin-bottom:14px">
+      Will call <span class="mono" style="color:var(--gold)">mintCarbonCredits(${id})</span> on <span class="mono" style="color:var(--teal2)">${chain.contractAddress.slice(0,16)}…</span>
+    </div>`}
+    <div id="mint-progress" style="display:none">
+      <div class="progress-bar"><div class="progress-fill" id="mint-bar"></div></div>
+      <div style="font-size:12px;color:var(--text2);margin-top:6px;display:flex;align-items:center;gap:6px">
+        <span id="mint-status-txt">Broadcasting…</span><span class="mining-dots"><span>.</span><span>.</span><span>.</span></span>
+      </div>
+    </div>
+    <div id="mint-success-block" style="display:none"></div>`;
+
+  document.getElementById('mint-footer').innerHTML=`
+    <button class="btn btn-ghost btn-sm" id="mint-cancel" onclick="closeModal('modal-mint')">Cancel</button>
+    <button class="btn btn-teal btn-sm" id="mint-confirm" onclick="confirmMint(${id})" ${!contractOk?'disabled':''}>🪙 Confirm Mint</button>`;
+  openModal('modal-mint');
+}
+
+async function confirmMint(id){
+  const projects=DB.projects();
+  const p=projects.find(x=>x.id===id);
+  if(!p) return;
+
+  document.getElementById('mint-confirm').disabled=true;
+  document.getElementById('mint-cancel').disabled=true;
+  document.getElementById('mint-progress').style.display='block';
+  const bar=document.getElementById('mint-bar');
+  const txt=document.getElementById('mint-status-txt');
+
+  const steps=[
+    [15,'Broadcasting transaction…'],
+    [35,'Waiting for node confirmation…'],
+    [55,'Executing mintCarbonCredits()…'],
+    [75,'Updating contract state…'],
+    [90,'Writing block…'],
+  ];
+  for(const [pct,msg] of steps){
+    await new Promise(r=>setTimeout(r,350+Math.random()*250));
+    bar.style.width=pct+'%'; txt.textContent=msg;
+  }
+
+  const txHash=await mineBlock('CreditsMinted',`${p.carbon_tonnes} BCT minted → ${p.name}`,currentUser.wallet,p.owner_id);
+  bar.style.width='100%'; txt.textContent='Transaction confirmed!';
+
+  // Update project
+  p.status='minted'; p.tx_hash=txHash; DB.saveProjects(projects);
+
+  // Save credit record
+  const credits=DB.credits();
+  const chain=DB.blockchain();
+  credits.push({
+    id:Date.now(),project_id:id,owner_id:p.owner_id,amount_tonnes:p.carbon_tonnes,
+    tx_hash:txHash,minted:new Date().toISOString(),project_name:p.name,
+    owner_name:p.owner_name,block:chain.blockNumber
+  });
+  DB.saveCredits(credits);
+
+  // Update user balance
+  const users=DB.users();
+  const owner=users.find(u=>u.id===p.owner_id);
+  if(owner){owner.bctBalance=(owner.bctBalance||0)+p.carbon_tonnes;DB.saveUsers(users);}
+
+  setTimeout(()=>{
+    document.getElementById('mint-success-block').style.display='block';
+    document.getElementById('mint-success-block').innerHTML=`<div class="tx-panel">
+      <div class="tx-hdr"><div class="tx-icon-box">✅</div><div><div class="tx-htitle">Transaction Confirmed</div><div class="tx-hsub">Block #${chain.blockNumber}</div></div></div>
+      <div class="tx-row"><span class="tx-lbl">Tx Hash</span><span class="tx-val" style="color:var(--teal2);font-size:11px">${txHash.slice(0,24)}…${txHash.slice(-8)}</span></div>
+      <div class="tx-row"><span class="tx-lbl">BCT Minted</span><span class="tx-val" style="color:var(--gold)">${p.carbon_tonnes.toLocaleString()} BCT</span></div>
+      <div class="tx-row"><span class="tx-lbl">Recipient</span><span class="tx-val">${p.owner_name}</span></div>
+    </div>`;
+    document.getElementById('mint-footer').innerHTML=`<button class="btn btn-teal btn-sm" onclick="closeModal('modal-mint');gotoPage('blockchain',null)">View in Explorer →</button>`;
+  },300);
+
+  toast(`🪙 ${p.carbon_tonnes.toLocaleString()} BCT minted for "${p.name}"!`,'success');
+  loadDashboard();renderProjects();renderCredits();updateNavBadges();
+}
+
+// ═══════════════════════════════════════════════════════
+//  BLOCKCHAIN
+// ═══════════════════════════════════════════════════════
+async function mineBlock(type,detail,from,ownerId){
+  const txHash=genTxHash();
+  const chain=DB.blockchain();
+  chain.blockNumber++;chain.txCount++;
+  chain.blocks.unshift({
+    num:chain.blockNumber,hash:genTxHash().slice(0,18),txHash,type,detail,
+    from:from||'0x'+Array.from(crypto.getRandomValues(new Uint8Array(8))).map(b=>b.toString(16).padStart(2,'0')).join(''),
+    ownerId:ownerId||null,gas:Math.floor(28000+Math.random()*40000).toLocaleString(),
+    timestamp:new Date().toISOString()
+  });
+  DB.saveBlockchain(chain);
+  document.getElementById('chain-num').textContent=chain.blockNumber;
+  document.getElementById('block-display').textContent=`Block #${chain.blockNumber}`;
+  return txHash;
+}
+
+function renderBlockchain(){
+  const chain=DB.blockchain();
+  document.getElementById('chain-info-rows').innerHTML=`
+    <div class="tx-row"><span class="tx-lbl">Network</span><span class="tx-val">Blue Carbon Testnet</span></div>
+    <div class="tx-row"><span class="tx-lbl">Chain ID</span><span class="tx-val mono">31337</span></div>
+    <div class="tx-row"><span class="tx-lbl">Latest Block</span><span class="tx-val mono" style="color:var(--gold)">#${chain.blockNumber}</span></div>
+    <div class="tx-row"><span class="tx-lbl">Total Txns</span><span class="tx-val mono">${chain.txCount}</span></div>
+    <div class="tx-row" style="border-bottom:none"><span class="tx-lbl">Status</span><span class="tx-val" style="color:var(--green)">● Live</span></div>`;
+
+  const credits=DB.credits();
+  const supply=credits.reduce((s,c)=>s+c.amount_tonnes,0);
+  document.getElementById('contract-stats-rows').innerHTML=`
+    <div class="tx-row"><span class="tx-lbl">Contract</span><span class="tx-val">BlueCarbonToken</span></div>
+    <div class="tx-row"><span class="tx-lbl">Address</span><span class="tx-val mono" style="color:var(--teal2);font-size:11px">${chain.contractAddress?chain.contractAddress.slice(0,22)+'…':'Not deployed'}</span></div>
+    <div class="tx-row"><span class="tx-lbl">Symbol</span><span class="tx-val mono" style="color:var(--gold)">BCT</span></div>
+    <div class="tx-row"><span class="tx-lbl">Total Supply</span><span class="tx-val mono">${supply.toLocaleString()} BCT</span></div>
+    <div class="tx-row" style="border-bottom:none"><span class="tx-lbl">Holders</span><span class="tx-val mono">${new Set(credits.map(c=>c.owner_id)).size}</span></div>`;
+
+  const typeColors={ProjectRegistered:'rgba(34,197,94,.08)',ProjectVerified:'rgba(20,184,166,.08)',CreditsMinted:'rgba(240,180,41,.08)',ProjectRejected:'rgba(244,63,94,.08)'};
+  const typeIcons={ProjectRegistered:'🌿',ProjectVerified:'✅',CreditsMinted:'🪙',ProjectRejected:'❌'};
+  const feed=document.getElementById('tx-feed');
+  if(!chain.blocks.length){feed.innerHTML=`<div class="empty"><span class="empty-icon">⛓️</span><h3>No transactions yet</h3></div>`;return;}
+  feed.innerHTML=chain.blocks.map(b=>`
+    <div class="block-card" style="background:${typeColors[b.type]||'var(--surf2)'}">
+      <div class="block-num">#${b.num}</div>
+      <div class="block-info">
+        <div class="block-type">${typeIcons[b.type]||'📋'} ${b.type}</div>
+        <div class="block-hash">${b.txHash?.slice(0,46)||b.hash}…</div>
+        <div class="block-meta">${b.detail} · from ${b.from?.slice(0,20)}… · gas: ${b.gas}</div>
+      </div>
+      <div class="block-time">${new Date(b.timestamp).toLocaleString()}</div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  CREDITS PAGE
+// ═══════════════════════════════════════════════════════
+function renderCredits(){
+  const credits=DB.credits();
+  const total=credits.reduce((s,c)=>s+c.amount_tonnes,0);
+  document.getElementById('c-total').textContent=total.toLocaleString();
+  document.getElementById('c-count').textContent=credits.length;
+  document.getElementById('c-txns').textContent=DB.blockchain().txCount;
+  const el=document.getElementById('credits-tbl');
+  if(!credits.length){el.innerHTML=`<div class="empty"><span class="empty-icon">🪙</span><h3>No credits minted yet</h3></div>`;return;}
+  el.innerHTML=`<table>
+    <thead><tr><th>#</th><th>Project</th><th>Owner</th><th>BCT (t)</th><th>Block</th><th>Tx Hash</th><th>Minted</th></tr></thead>
+    <tbody>${credits.map(c=>`<tr onclick="gotoPage('blockchain',null)">
+      <td class="mono" style="color:var(--text2)">#${c.id}</td>
+      <td style="font-weight:600">${c.project_name}</td>
+      <td style="color:var(--text2)">${c.owner_name||'—'}</td>
+      <td class="mono" style="color:var(--gold)">${c.amount_tonnes.toLocaleString()}</td>
+      <td class="mono" style="color:var(--teal2)">#${c.block||'—'}</td>
+      <td class="mono" style="font-size:10px;color:var(--teal2)" title="${c.tx_hash}">${c.tx_hash?.slice(0,24)||'—'}…</td>
+      <td style="color:var(--text2)">${new Date(c.minted).toLocaleDateString()}</td>
+    </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  CONTRACT PAGE
+// ═══════════════════════════════════════════════════════
+async function renderContract(){
+  const chain=DB.blockchain();
+  const card=document.getElementById('deploy-status-card');
+  const addrEl=document.getElementById('deploy-addr-display');
+  const actEl=document.getElementById('deploy-actions');
+
+  if(chain.contractAddress){
+    document.getElementById('deploy-status-icon').textContent='✅';
+    document.getElementById('deploy-status-text').textContent='Contract Deployed';
+    addrEl.innerHTML=`<div style="font-size:11px;color:var(--text2);margin-top:8px">Contract Address:</div>
+    <div class="deploy-addr">${chain.contractAddress}</div>`;
+    actEl.innerHTML=`<button class="btn btn-red btn-sm" onclick="undeployContract()">⚠️ Reset Contract (Dev Only)</button>`;
+  } else {
+    document.getElementById('deploy-status-icon').textContent='⚙️';
+    document.getElementById('deploy-status-text').textContent='Contract Not Deployed';
+    addrEl.innerHTML=`<div style="color:var(--text2);font-size:13px;margin-top:8px">The BlueCarbonToken smart contract has not been deployed yet. Deploy it to enable carbon credit minting.</div>`;
+    actEl.innerHTML=`<div id="deploy-mining" style="display:none;margin-bottom:10px">
+      <div style="font-size:13px;display:flex;align-items:center;gap:8px">⚙️ Deploying contract<span class="mining-dots"><span>.</span><span>.</span><span>.</span></span></div>
+      <div class="progress-bar"><div class="progress-fill" id="deploy-bar"></div></div>
+    </div>
+    <button class="btn btn-gold btn-sm" id="deploy-btn" onclick="deployContract()">🚀 Deploy BlueCarbonToken Contract</button>`;
+  }
+
+  document.getElementById('contract-functions').innerHTML=`
+    <div style="font-size:12px;line-height:2;color:var(--text2)">
+      ${[
+        ['registerProject()','NGO/Community','Register a new restoration site'],
+        ['verifyProject(id)','Verifier/Admin','Approve a project'],
+        ['rejectProject(id,reason)','Verifier/Admin','Reject with reason'],
+        ['mintCarbonCredits(id)','Verifier/Admin','Mint BCT tokens'],
+        ['transferCredits(to,amount)','Token Holder','Transfer BCT'],
+        ['totalSupply()','Public View','Get total BCT supply'],
+        ['balanceOf(addr)','Public View','Get wallet BCT balance'],
+      ].map(([fn,role,desc])=>`
+        <div style="padding:8px 0;border-bottom:1px solid var(--brd)">
+          <div style="font-family:var(--mono);font-size:12px;color:var(--teal2)">${fn}</div>
+          <div style="font-size:11px;color:var(--text2)">Role: ${role} — ${desc}</div>
+        </div>`).join('')}
+    </div>`;
+
+  document.getElementById('abi-summary').innerHTML=`
+    <div style="font-size:12px;line-height:1.8;color:var(--text2)">
+      <div class="tx-row"><span class="tx-lbl">Name</span><span class="tx-val">BlueCarbonToken</span></div>
+      <div class="tx-row"><span class="tx-lbl">Symbol</span><span class="tx-val mono" style="color:var(--gold)">BCT</span></div>
+      <div class="tx-row"><span class="tx-lbl">Standard</span><span class="tx-val">ERC-20 compatible</span></div>
+      <div class="tx-row"><span class="tx-lbl">Decimals</span><span class="tx-val mono">0 (1 token = 1 tonne CO₂)</span></div>
+      <div class="tx-row"><span class="tx-lbl">Compiler</span><span class="tx-val mono">Solidity ^0.8.20</span></div>
+      <div class="tx-row" style="border-bottom:none"><span class="tx-lbl">License</span><span class="tx-val">MIT</span></div>
+    </div>`;
+}
+
+async function deployContract(){
+  document.getElementById('deploy-btn').disabled=true;
+  document.getElementById('deploy-mining').style.display='block';
+  const bar=document.getElementById('deploy-bar');
+  for(const p of [20,45,65,82,95]){
+    await new Promise(r=>setTimeout(r,400+Math.random()*300));
+    bar.style.width=p+'%';
+  }
+
+  const addr=genAddress();
+  const chain=DB.blockchain();
+  chain.contractAddress=addr;
+  chain.blockNumber++;chain.txCount++;
+  chain.blocks.unshift({
+    num:chain.blockNumber,hash:genTxHash().slice(0,18),txHash:genTxHash(),
+    type:'ContractDeployed',detail:`BlueCarbonToken deployed to ${addr.slice(0,16)}…`,
+    from:currentUser.wallet,gas:'847,234',timestamp:new Date().toISOString()
+  });
+  DB.saveBlockchain(chain);
+  bar.style.width='100%';
+
+  await new Promise(r=>setTimeout(r,400));
+  toast(`✅ Contract deployed at ${addr.slice(0,20)}…`,'success');
+  renderContract();
+  loadDashboard();
+}
+
+function undeployContract(){
+  if(!confirm('Reset contract address? This is for development only.')) return;
+  const chain=DB.blockchain();
+  chain.contractAddress=null;
+  DB.saveBlockchain(chain);
+  renderContract();
+  toast('Contract address reset','warn');
+}
+
+// ═══════════════════════════════════════════════════════
+//  MAP
+// ═══════════════════════════════════════════════════════
+function renderMap(){
+  const projects=DB.projects();
+  document.getElementById('map-sub').textContent=`${projects.length} projects`;
+  setTimeout(()=>{
+    if(!leafMap){
+      leafMap=L.map('proj-map').setView([20.5937,78.9629],5);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(leafMap);
+    } else {
+      leafMap.eachLayer(l=>{if(l instanceof L.CircleMarker) leafMap.removeLayer(l);});
+    }
+    const colors={pending:'#f59e0b',verified:'#22c55e',minted:'#14b8a6',rejected:'#f43f5e'};
+    projects.forEach(p=>{
+      if(!p.latitude||!p.longitude) return;
+      L.circleMarker([+p.latitude,+p.longitude],{radius:11,fillColor:colors[p.status]||'#22c55e',color:'rgba(0,0,0,.4)',weight:2,fillOpacity:.9})
+        .addTo(leafMap)
+        .bindPopup(`<b>${p.name}</b><br/>${p.ecosystem_type} · ${p.area_hectares} ha<br/>CO₂: <b>${p.carbon_tonnes?.toLocaleString()||'?'} t</b><br/>Status: <b>${p.status}</b>`);
+    });
+  },100);
+}
+
+// ═══════════════════════════════════════════════════════
+//  USERS
+// ═══════════════════════════════════════════════════════
+function renderUsers(){
+  const users=DB.users();
+  const credits=DB.credits();
+  document.getElementById('users-tbl').innerHTML=`<table>
+    <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Organisation</th><th>Wallet</th><th>BCT</th><th>Joined</th></tr></thead>
+    <tbody>${users.map(u=>{
+      const bct=credits.filter(c=>c.owner_id===u.id).reduce((s,c)=>s+c.amount_tonnes,0);
+      return `<tr>
+        <td class="mono" style="color:var(--text2)">#${u.id}</td>
+        <td style="font-weight:600">${u.name}</td>
+        <td style="color:var(--text2)">${u.email}</td>
+        <td><span class="badge ${u.role==='admin'||u.role==='verifier'?'b-admin':'b-verified'}">${u.role.replace('_',' ')}</span></td>
+        <td style="color:var(--text2)">${u.organisation||'—'}</td>
+        <td class="mono" style="font-size:10px;color:var(--teal2)">${u.wallet?.slice(0,18)||'—'}…</td>
+        <td class="mono" style="color:var(--gold)">${bct.toLocaleString()}</td>
+        <td style="color:var(--text2)">${new Date(u.created).toLocaleDateString()}</td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  LIGHTBOX
+// ═══════════════════════════════════════════════════════
+function openLightbox(src){
+  document.getElementById('lb-img').src=src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
+
+// ═══════════════════════════════════════════════════════
+//  MODALS & TOAST
+// ═══════════════════════════════════════════════════════
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-bg').forEach(b=>b.addEventListener('click',e=>{if(e.target===b)b.classList.remove('open');}));
+
+function toast(msg,type='success'){
+  const stack=document.getElementById('toasts');
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<span>${{success:'✅',error:'❌',info:'ℹ️',warn:'⚠️'}[type]||'ℹ️'}</span><span>${msg}</span>`;
+  stack.appendChild(el);
+  setTimeout(()=>{el.classList.add('out');setTimeout(()=>el.remove(),230);},3800);
+}
+
+// ═══════════════════════════════════════════════════════
+//  CROSS-TAB SYNC
+// ═══════════════════════════════════════════════════════
+window.addEventListener('storage',e=>{
+  if(currentUser&&e.key?.startsWith(STORE_KEY)){
+    updateNavBadges();
+    if(document.getElementById('page-dashboard').classList.contains('active')) loadDashboard();
+    if(document.getElementById('page-uploads').classList.contains('active')) renderUploads();
+  }
+});
+
+// Enter key on login
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('auth-login-panel').style.display!=='none')doLogin();});
+
+
+// ═══════════════════════════════════════════════════════
+//  LIVE ACTIVITY FEED (bonus feature)
+// ═══════════════════════════════════════════════════════
+let _feedSnapshot = { projects: 0, images: 0, credits: 0, blocks: 0 };
+
+function buildFeedEvents() {
+  const events = [];
+  const projects = DB.projects();
+  const images = DB.images();
+  const credits = DB.credits();
+  const chain = DB.blockchain();
+
+  projects.forEach(p => {
+    if (p.status === 'pending') {
+      events.push({ icon: '🌿', title: `New project submitted`, meta: `"${p.name}" · ${(p.ecosystem_type||'').replace('_',' ')}`, time: p.created, color: 'var(--gold)' });
+    }
+    if (p.status === 'verified' && p.verified_at) {
+      events.push({ icon: '✅', title: `Project verified`, meta: `"${p.name}" approved by verifier`, time: p.verified_at, color: 'var(--green)' });
+    }
+    if (p.status === 'minted' && p.verified_at) {
+      events.push({ icon: '🪙', title: `BCT credits minted`, meta: `${p.carbon_tonnes} tonnes CO₂ → "${p.name}"`, time: p.verified_at, color: 'var(--teal)' });
+    }
+  });
+
+  images.forEach(img => {
+    if (img.status === 'pending_review') {
+      events.push({ icon: '📸', title: `Photo upload pending`, meta: `${img.filename||'Image'} · awaiting review`, time: img.uploaded_at||img.created, color: 'var(--gold2)' });
+    }
+    if (img.status === 'approved') {
+      events.push({ icon: '🔍', title: `Upload approved`, meta: `${img.filename||'Image'} verified`, time: img.reviewed_at||img.uploaded_at, color: 'var(--green)' });
+    }
+  });
+
+  credits.forEach(c => {
+    events.push({ icon: '⛓️', title: `Credit record created`, meta: `${c.amount_tonnes} BCT · ${c.project_name||'Project'}`, time: c.minted, color: 'var(--teal2)' });
+  });
+
+  if (chain.blocks && chain.blocks.length) {
+    chain.blocks.slice(-5).forEach(b => {
+      const icons = { ProjectVerified:'✅', CreditsMinted:'🪙', ContractDeployed:'🚀', ProjectSubmitted:'📋' };
+      events.push({ icon: icons[b.type]||'⛓️', title: `Block #${b.num} mined`, meta: b.detail||b.type, time: b.timestamp, color: 'var(--teal)' });
+    });
+  }
+
+  // Sort newest first
+  events.sort((a,b) => new Date(b.time||0) - new Date(a.time||0));
+  return events.slice(0, 20);
+}
+
+function timeAgo(ts) {
+  if (!ts) return '—';
+  const diff = (Date.now() - new Date(ts)) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+  return new Date(ts).toLocaleDateString();
+}
+
+function renderLiveFeed() {
+  const list = document.getElementById('live-feed-list');
+  if (!list) return;
+  const events = buildFeedEvents();
+  if (!events.length) {
+    list.innerHTML = '<div class="feed-empty">🌊 No activity yet.<br><span style="font-size:11px">Submit a project from the mobile app to get started.</span></div>';
+    return;
+  }
+  list.innerHTML = events.map(e => `
+    <div class="feed-item">
+      <div class="feed-icon">${e.icon}</div>
+      <div class="feed-body">
+        <div class="feed-title" style="color:${e.color||'var(--text1)'}">${e.title}</div>
+        <div class="feed-meta">${e.meta}</div>
+      </div>
+      <div class="feed-time">${timeAgo(e.time)}</div>
+    </div>`).join('');
+}
+
+function checkFeedUpdates() {
+  if (!currentUser) return;
+  if (!document.getElementById('page-dashboard').classList.contains('active')) return;
+  const p = DB.projects().length;
+  const i = DB.images().length;
+  const c = DB.credits().length;
+  const b = (DB.blockchain().blocks||[]).length;
+  if (p !== _feedSnapshot.projects || i !== _feedSnapshot.images || c !== _feedSnapshot.credits || b !== _feedSnapshot.blocks) {
+    _feedSnapshot = { projects:p, images:i, credits:c, blocks:b };
+    renderLiveFeed();
+  }
+}
+
+// Poll feed every 3 seconds
+setInterval(checkFeedUpdates, 3000);
+
+// ═══════════════════════════════════════════════════════
+//  INIT — restore session on page load/reload (Bug fix)
+// ═══════════════════════════════════════════════════════
+function init(){
+  const session=DB.get('session');
+  if(session&&session.userId){
+    const users=DB.users();
+    const u=users.find(x=>x.id===session.userId);
+    if(u&&['admin','verifier'].includes(u.role)){
+      currentUser=u;
+      launchApp();
+      return;
+    }
+    // Stale / invalid session — clear it
+    localStorage.removeItem(STORE_KEY+'session');
+  }
+  // No valid session: show login
+  document.getElementById('auth-wrap').style.display='flex';
+  document.getElementById('app').style.display='none';
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
