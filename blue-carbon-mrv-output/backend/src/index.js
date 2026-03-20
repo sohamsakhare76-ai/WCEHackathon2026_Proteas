@@ -93,11 +93,17 @@ app.use((err, _req, res, _next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`\n🌊 Blue Carbon MRV Platform running!\n`);
-  console.log(`   🏠 Home:             http://localhost:${PORT}`);
-  console.log(`   ⚙️  Admin Dashboard:  http://localhost:${PORT}/admin`);
-  console.log(`   📱 Mobile App:       http://localhost:${PORT}/mobile`);
-  console.log(`   🔌 API Health:       http://localhost:${PORT}/health\n`);
+    const BASE_URL =
+  process.env.BASE_URL ||
+  (process.env.RENDER_EXTERNAL_HOSTNAME
+    ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}`
+    : `http://localhost:${PORT}`);
+
+    console.log(`\n🌊 Blue Carbon MRV Platform running!\n`);
+    console.log(`🏠 Home: ${BASE_URL}`);
+    console.log(`🛠 Admin Dashboard: ${BASE_URL}/admin`);
+    console.log(`📱 Mobile App: ${BASE_URL}/mobile`);
+    console.log(`❤️ API Health: ${BASE_URL}/health\n`);
 });
 
 module.exports = app;
